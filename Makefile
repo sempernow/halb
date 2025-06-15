@@ -23,12 +23,14 @@ YELLOW  := "\e[1;33m"
 RESTORE := "\e[0m"
 INFO    := @bash -c 'printf $(YELLOW);echo "@ $$1";printf $(RESTORE)' MESSAGE
 
+
 ##############################################################################
 ## Project Meta
 
 export PRJ_ROOT := $(shell pwd)
 export LOG_PRE  := make
 export UTC      := $(shell date '+%Y-%m-%dT%H.%M.%Z')
+
 
 ##############################################################################
 ## HAProxy/Keepalived : HA Application Load Balancer (HALB)
@@ -117,6 +119,7 @@ html :
 	find . -type f ! -path './.git/*' -name '*.md' -exec md2html.exe "{}" \;
 commit push : html mode
 	gc && git push && gl && gs
+
 
 ##############################################################################
 ## Recipes : Host
