@@ -5,7 +5,7 @@
 
 # @ firewalld
 echo '=== HA-LB : firewalld settings'
-export zone=public
+export zone=$(firewall-cmd --get-active-zone |head -n1)
 export svc=halb
 ansibash -c "
     sudo firewall-cmd --zone=$zone --list-all

@@ -4,8 +4,6 @@
 #
 # See Makefile recipe : lbconf
 #################################################
-set -euo pipefail
-
 [[ $(whoami) == 'root' ]] || exit 11
 
 systemctl disable --now keepalived

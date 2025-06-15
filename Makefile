@@ -58,8 +58,7 @@ export ADMIN_USER          ?= u2
 export ADMIN_KEY           ?= ${HOME}/.ssh/vm_lime
 export ADMIN_HOST          ?= a0
 export ADMIN_NODES_CONTROL ?= a1 a2 a3
-export ADMIN_NODES_WORKER  ?=
-export ADMIN_TARGET_LIST   ?= ${ADMIN_NODES_CONTROL} ${ADMIN_NODES_WORKER}
+export ADMIN_TARGET_LIST   ?= ${ADMIN_NODES_CONTROL}
 export ADMIN_SRC_DIR       ?= $(shell pwd)
 #export ADMIN_DST_DIR       ?= ${ADMIN_SRC_DIR}
 export ADMIN_DST_DIR       ?= /tmp/$(shell basename "${ADMIN_SRC_DIR}")
@@ -73,11 +72,10 @@ export ANSIBASH_USER        ?= ${ADMIN_USER}
 
 menu :
 	$(INFO) 'Install HA Application Load Balancer onto all target hosts : RHEL9 is expected'
-	@echo "update-os    : Update host OS"
-	@echo "conf         : kernel selinux swap : See scripts/configure-*"
-	@echo "  -selinux   : Configure targets' SELinux"
-	@echo "reboot       : Reboot targets"
-	@echo "rpms         : Install HAProxy/Keepalived and host tools"
+	@echo "upgrade      : dnf upgrade"
+	@echo "selinux      : Set SELinux mode"
+	@echo "reboot       : Reboot hosts"
+	@echo "rpms         : Install HAProxy/Keepalived"
 	@echo "============== "
 	@echo "lbmake       : Generate HA-LB configurations from .tpl files"
 	@echo "lbconf       : Configure HA LB on all control nodes"
@@ -103,9 +101,8 @@ menu :
 env :
 	$(INFO) 'Environment'
 	@echo "PWD=${PRJ_ROOT}"
-	@env |grep K8S_
 	@env |grep ADMIN_
-	@env |grep DOMAIN_
+	@env |grep ANSIBASH_
 
 eol :
 	find . -type f ! -path '*/.git/*' -exec dos2unix {} \+
@@ -135,9 +132,8 @@ scan :
 #	  |& tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.scan.arp-scan.${UTC}.log
 
 # Smoke test this setup
-status hello :
-	@ANSIBASH_TARGET_LIST='${ADMIN_TARGET_LIST}' \
-	  ansibash 'printf "%12s: %s\n" Host $$(hostname) \
+status :
+	ansibash 'printf "%12s: %s\n" Host $$(hostname) \
 	    && printf "%12s: %s\n" User $$(id -un) \
 	    && printf "%12s: %s\n" Kernel $$(uname -r) \
 	    && printf "%12s: %s\n" firewalld $$(systemctl is-active firewalld.service) \
@@ -148,63 +144,42 @@ status hello :
 
 #net: ruleset iptables
 net:
-	ANSIBASH_TARGET_LIST='${ADMIN_TARGET_LIST}' \
-	  ansibash '\
+	ansibash '\
 	    sudo nmcli dev status; \
 	    ip -brief addr; \
 	  '
 ruleset:
-	ANSIBASH_TARGET_LIST='${ADMIN_TARGET_LIST}' \
-	  ansibash sudo nft list ruleset
+	ansibash sudo nft list ruleset
 iptables:
-	ANSIBASH_TARGET_LIST='${ADMIN_TARGET_LIST}' \
-	  ansibash sudo iptables -L -n -v
+	ansibash sudo iptables -L -n -v
 
 psrss :
-	ANSIBASH_TARGET_LIST='${ADMIN_TARGET_LIST}' \
-	  ansibash -s scripts/psrss.sh
+	ansibash -s scripts/psrss.sh
 
 # Configure bash shell of target hosts using the declared Git project
 userrc :
-	ANSIBASH_TARGET_LIST='${ADMIN_TARGET_LIST}' \
-	  ansibash 'git clone https://github.com/sempernow/userrc 2>/dev/null || echo ok'
-	ANSIBASH_TARGET_LIST='${ADMIN_TARGET_LIST}' \
-	  ansibash 'pushd userrc && git pull && make sync-user && make user'
+	ansibash 'git clone https://github.com/sempernow/userrc 2>/dev/null || echo ok'
+	ansibash 'pushd userrc && git pull && make sync-user && make user'
 
 reboot :
-	ANSIBASH_TARGET_LIST='${ADMIN_TARGET_LIST}' \
-	  ansibash sudo reboot
+	ansibash sudo reboot
 
 ## Host config
-conf : conf-update conf-kernel conf-selinux conf-swap
-conf-update :
-	ANSIBASH_TARGET_LIST='${ADMIN_TARGET_LIST}' \
-	  ansibash sudo dnf -y update \
-	  |& tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.conf-update.${UTC}.log
-conf-sudoer :
-	bash make.recipes.sh sudoer \
-	  |& tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.conf-sudoer.${UTC}.log
-
-conf-selinux :
-	ANSIBASH_TARGET_LIST='${ADMIN_TARGET_LIST}' \
-	  ansibash -s ${ADMIN_SRC_DIR}/configure-selinux.sh enforcing \
-	  |& tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.conf-selinux.${UTC}.log
+upgrade :
+	ansibash sudo dnf -y --color=never upgrade \
+	  |& tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.upgrade.${UTC}.log
+selinux :
+	ansibash -s ${ADMIN_SRC_DIR}/configure-selinux.sh enforcing \
+	  |& tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.selinux.${UTC}.log
 
 ## Install K8s and all deps : RPM(s), binaries, systemd, and other configs
-rpms : update-os
-	ANSIBASH_TARGET_LIST='${ADMIN_TARGET_LIST}' \
-	  ansibash -s ${ADMIN_SRC_DIR}/install-rpms.sh \
-	  |& tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.install-rpms.${UTC}.log
-update-os :
-	ANSIBASH_TARGET_LIST='${ADMIN_TARGET_LIST}' \
-	  ansibash sudo dnf -y --color=never update \
-	  |& tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.update-os.${UTC}.log
+rpms :
+	ansibash sudo dnf -y install conntrack haproxy keepalived \
+	  |& tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.rpms.${UTC}.log
 
-#lbclean :
-#ansibash -s ${ADMIN_SRC_DIR}/clean-halb.sh ${HALB_VIP} ${HALB_DEVICE}
-#ansibash -s ${ADMIN_SRC_DIR}/configure-halb.sh ${HALB_VIP} ${HALB_DEVICE}
-
-#ansibash sudo ip addr del ${HALB_VIP}/24 dev ${HALB_DEVICE}
+firewall :
+	ansibash -u firewalld-halb.sh
+	ansibash sudo bash firewalld-halb.sh ${HALB_VIP} ${HALB_VIP6} ${HALB_K8S} ${HALB_DEVICE}
 
 #bash make.recipes.sh halb
 lbmake lbbuild :
@@ -216,12 +191,12 @@ lbconf :
 	  && scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_2}.conf ${GITOPS_USER}@${HALB_FQDN_2}:keepalived.conf \
 	  && scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_3}.conf ${GITOPS_USER}@${HALB_FQDN_3}:keepalived.conf \
 	  && ansibash -u ${ADMIN_SRC_DIR}/systemd/99-keepalived.conf \
-	  && ansibash -u ${ADMIN_SRC_DIR}/keepalived-check_apiserver.sh \
 	  && ansibash -u ${ADMIN_SRC_DIR}/haproxy.cfg \
 	  && ansibash -u ${ADMIN_SRC_DIR}/haproxy-rsyslog.conf \
 	  && ansibash -u ${ADMIN_SRC_DIR}/etc.hosts \
 	  && ansibash -u ${ADMIN_SRC_DIR}/etc.environment \
-	  && ansibash -s ${ADMIN_SRC_DIR}/configure-halb.sh ${HALB_CIDR} ${HALB_DEVICE} \
+	  && ansibash -u ${ADMIN_SRC_DIR}/configure-halb.sh \
+	  && ansibash sudo bash configure-halb.sh ${HALB_CIDR} ${HALB_DEVICE} \
 	  |& tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.lbconf.${UTC}.log
 
 lbverify :
@@ -237,3 +212,4 @@ healthz :
 
 teardown :
 	@echo "  NOT IMPLEMENTED"
+#	ansibash sudo ip addr del ${HALB_VIP}/24 dev ${HALB_DEVICE}

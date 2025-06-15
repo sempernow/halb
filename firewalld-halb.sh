@@ -8,36 +8,24 @@
     systemctl enable --now firewalld.service
 
 zone=$(firewall-cmd --get-active-zone |head -n1)
-#zone=public
 
 svc=halb
-# vip="${HALB_VIP:-192.168.0.100}"
-# vip6="${HALB_VIP6:-::ffff:c0a8:64}"
-# vport="${HALB_PORT:-8443}"
-# device="${HALB_DEVICE:-eth0}" # Network interface common to all LB nodes
 vip="${1}"
 vip6="${2}"
 vport="${3}"
 device="${4}" # Network interface common to all LB nodes
 
 at="--permanent --zone=$zone --service=$svc"
-echo "Configure firewalld : service @ $at"
 
-#echo "vip: $1, vip6: $2, vport: $3, dev: $4"
-#exit
-
-# Define service (idempotent)
 [[ $(firewall-cmd --get-services |grep $svc) ]] ||
     firewall-cmd --permanent --zone=$zone --new-service=$svc
 
 firewall-cmd $at --set-description="HAProxy/Keepalived in VRRP mode"
-## Allow HAProxy listen to HTTP(S) traffic 
 firewall-cmd $at --add-port=80/tcp
 firewall-cmd $at --add-port=443/tcp
 firewall-cmd $at --add-port=6443/tcp
 firewall-cmd $at --add-port=$vport/tcp
 
-# Add SERVICE
 firewall-cmd --permanent --zone=$zone --add-service=$svc
 
 # Add RICH RULEs to zone (cannot be scoped to service)
@@ -69,3 +57,5 @@ firewall-cmd --permanent --direct \
 
 # Update firewalld.service sans restart 
 firewall-cmd --reload
+
+firewall-cmd --list-all --zone=$zone
