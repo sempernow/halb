@@ -1,11 +1,9 @@
 #!/usr/bin/env bash
 #################################################################
-# Generate all configuration files for a 3-node HALB;
-# Highly Available (HA) Load Balancer (LB);
-# built of HAProxy (LB) and Keepalived (HA/failover). 
+# Process the *.tpl files
 #################################################################
 [[ $HALB_VIP ]] || { 
-    echo "⚠  ENVIRONMENT is NOT CONFIGURED"
+    echo "⚠  ERR : Environment is NOT CONFIGURED"
     
     exit 11
 }
@@ -25,10 +23,21 @@ lb_3_ipv4=$(ipv4 ${HALB_FQDN_3})
 [[ $lb_2_ipv4 ]] || { echo '⚠  FAIL @ lb_2_ipv4';exit 22; }
 [[ $lb_3_ipv4 ]] || { echo '⚠  FAIL @ lb_3_ipv4';exit 23; }
 
+## @ haproxy
+
+target='haproxy.cfg'
+cp ${target}.tpl $target
+sed -i "s/LB_1_FQDN[[:space:]]LB_1_IPV4/$HALB_FQDN_1 $lb_1_ipv4/" $target
+sed -i "s/LB_2_FQDN[[:space:]]LB_2_IPV4/$HALB_FQDN_2 $lb_2_ipv4/" $target
+sed -i "s/LB_3_FQDN[[:space:]]LB_3_IPV4/$HALB_FQDN_3 $lb_3_ipv4/" $target
+sed -i "s/K8S_PORT/$HALB_K8S_PORT/" $target
+sed -i "s/LB_DEVICE/$HALB_DEVICE/" $target
+sed -i "s/HTTP_PORT/$HALB_HTTP_PORT/" $target
+sed -i "s/HTTPS_PORT/$HALB_HTTPS_PORT/" $target
+
+
 ## @ keepalived
 
-# Generate a password common to all LB nodes
-#pass="$(cat /proc/sys/kernel/random/uuid)" 
 pass="$(cat /dev/urandom |tr -dc [:alnum:] |fold -w22 |head -n1)" 
 
 target='keepalived.conf'
@@ -40,10 +49,10 @@ sed -i "s/SET_MASK/$HALB_MASK/" $target
 sed -i "s/UNICAST_PEER_1/$lb_1_ipv4/" $target
 sed -i "s/UNICAST_PEER_2/$lb_2_ipv4/" $target
 sed -i "s/UNICAST_PEER_3/$lb_3_ipv4/" $target
-# Keepalived requires a unique configuration file 
-# (keepalived-*.conf) at each HAProxy-LB node on which it runs.
-# These *.conf files are identical except that "priority VAL" 
-# of each BACKUP must be unique and lower than that of MASTER.
+## Keepalived requires a unique configuration file (keepalived-*.conf) 
+## at each HAProxy-LB node on which it runs.
+## They are identical except for "priority VAL";
+## each BACKUP must be unique and lower than that of MASTER.
 cp $target keepalived-$HALB_FQDN_1.conf
 cp $target keepalived-$HALB_FQDN_2.conf
 cp $target keepalived-$HALB_FQDN_3.conf
@@ -65,16 +74,6 @@ sed -i "s/priority 255/priority 253/" $target
 sed -i "/  $lb_3_ipv4/d" $target
 sed -i "s/UNICAST_SRC_IP/$lb_3_ipv4/" $target
 
-## @ haproxy
-
-# Replace template pattern "LB_?_FQDN LB_?_IPV4" with declared values.
-target='haproxy.cfg'
-cp ${target}.tpl $target
-sed -i "s/LB_1_FQDN[[:space:]]LB_1_IPV4/$HALB_FQDN_1 $lb_1_ipv4/" $target
-sed -i "s/LB_2_FQDN[[:space:]]LB_2_IPV4/$HALB_FQDN_2 $lb_2_ipv4/" $target
-sed -i "s/LB_3_FQDN[[:space:]]LB_3_IPV4/$HALB_FQDN_3 $lb_3_ipv4/" $target
-sed -i "s/LB_PORT/$HALB_PORT/" $target
-sed -i "s/LB_DEVICE/$HALB_DEVICE/" $target
 
 ## @ etc.hosts <=> /etc/hosts : Append HALB entries
 

@@ -44,9 +44,9 @@ export HALB_DEVICE   ?= eth0
 export HALB_FQDN_1   ?= a1.${HALB_DOMAIN}
 export HALB_FQDN_2   ?= a2.${HALB_DOMAIN}
 export HALB_FQDN_3   ?= a3.${HALB_DOMAIN}
-export HALB_K8S      ?= 8443
-export HALB_HTTP     ?= 30080
-export HALB_HTTPS    ?= 30443
+export HALB_K8S_PORT  	?= 8443
+export HALB_HTTP_PORT  	?= 30080
+export HALB_HTTPS_PORT 	?= 30443
 
 
 ##############################################################################
@@ -141,8 +141,8 @@ status :
 	    && printf "%12s: %s\n" containerd $$(systemctl is-active containerd) \
 	    && printf "%12s: %s\n" kubelet $$(systemctl is-active kubelet) \
 	  '
-
-#net: ruleset iptables
+sealert :
+	ansibash 'sudo sealert -l "*"'
 net:
 	ansibash '\
 	    sudo nmcli dev status; \
@@ -179,7 +179,7 @@ rpms :
 
 firewall :
 	ansibash -u firewalld-halb.sh
-	ansibash sudo bash firewalld-halb.sh ${HALB_VIP} ${HALB_VIP6} ${HALB_K8S} ${HALB_DEVICE}
+	ansibash sudo bash firewalld-halb.sh ${HALB_K8S_PORT}
 
 #bash make.recipes.sh halb
 lbmake lbbuild :
@@ -187,9 +187,9 @@ lbmake lbbuild :
 
 #bash halb/push-halb.sh
 lbconf :
-	scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_1}.conf ${GITOPS_USER}@${HALB_FQDN_1}:keepalived.conf \
-	  && scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_2}.conf ${GITOPS_USER}@${HALB_FQDN_2}:keepalived.conf \
-	  && scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_3}.conf ${GITOPS_USER}@${HALB_FQDN_3}:keepalived.conf \
+	scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_1}.conf ${ADMIN_USER}@${HALB_FQDN_1}:keepalived.conf \
+	  && scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_2}.conf ${ADMIN_USER}@${HALB_FQDN_2}:keepalived.conf \
+	  && scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_3}.conf ${ADMIN_USER}@${HALB_FQDN_3}:keepalived.conf \
 	  && ansibash -u ${ADMIN_SRC_DIR}/systemd/99-keepalived.conf \
 	  && ansibash -u ${ADMIN_SRC_DIR}/haproxy.cfg \
 	  && ansibash -u ${ADMIN_SRC_DIR}/haproxy-rsyslog.conf \
@@ -208,7 +208,7 @@ lbshow lblook :
 	ansibash 'sudo journalctl -eu keepalived |grep -e Entering -e @'
 
 healthz :
-	curl -ks https://${HALB_VIP}:${HALB_K8S}/healthz?verbose
+	curl -ks https://${HALB_VIP}:${HALB_K8S_PORT}/healthz?verbose
 
 teardown :
 	@echo "  NOT IMPLEMENTED"
