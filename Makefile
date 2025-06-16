@@ -210,7 +210,8 @@ lbshow lblook :
 	ansibash 'sudo journalctl -eu keepalived |grep -e Entering -e @'
 
 healthz :
-	curl -ks https://${HALB_VIP}:${HALB_K8S_PORT}/healthz?verbose
+	curl -ks https://${HALB_VIP}:${HALB_K8S_PORT}/healthz;echo $$?
+	curl -ks https://kube.${HALB_DOMAIN}:${HALB_K8S_PORT}/healthz?verbose
 
 teardown :
 	@echo "  NOT IMPLEMENTED"
