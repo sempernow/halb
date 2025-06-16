@@ -23,21 +23,29 @@ systemctl disable --now haproxy
 
 dir=/usr/lib/systemd/system/keepalived.service.d
 mkdir -p $dir
-cp 99-keepalived.conf $dir
-chmod 0644 $dir/99-keepalived.conf
-chown root:root -R $dir/
+cp keepalived.10-options.conf $dir/10-options.conf
+chmod 0644 $dir/10-options.conf
+chown -R root:root $dir
 
 dir=/etc/keepalived
-cp keepalived.conf $dir/keepalived.conf
+cp keepalived.conf $dir/
 #cp keepalived-check_apiserver.sh $dir/check_apiserver.sh
 chmod 0644 $dir/keepalived.conf
 #chmod 0744 $dir/check_apiserver.sh
-chown root:root -R $dir/
+chown -R root:root $dir
 
-target=/etc/haproxy/haproxy.cfg
-cp haproxy.cfg $target
-chmod 0644 $target
-chown root:root $target
+dir=/etc/haproxy
+cp haproxy.cfg $dir/
+chmod 0644 $dir/haproxy.cfg
+chown -R root:root $dir
+
+dir=/usr/lib/systemd/system/haproxy.service.d
+mkdir -p $dir
+cp haproxy.10-limits.conf $dir/10-limits.conf
+chmod 0644 $dir/10-limits.conf
+cp haproxy.20-quiet.conf $dir/20-quiet.conf
+chmod 0644 $dir/20-quiet.conf
+chown -R root:root $dir
 
 #cp etc.hosts /etc/hosts 
 #chmod 0644 /etc/hosts

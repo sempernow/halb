@@ -77,6 +77,7 @@ menu :
 	@echo "reboot       : Reboot hosts"
 	@echo "rpms         : Install HAProxy/Keepalived"
 	@echo "============== "
+	@echo "firewall     : Configure firewalld for HALB"
 	@echo "lbmake       : Generate HA-LB configurations from .tpl files"
 	@echo "lbconf       : Configure HA LB on all control nodes"
 	@echo "lbverify     : Verify HA-LB dynamics"
@@ -86,6 +87,7 @@ menu :
 	@echo "============== "
 	@echo "scan         : Nmap scan report"
 	@echo "status       : Print targets' status"
+	@echo "sealert      : sealert -l '*'"
 	@echo "net          : Interfaces' info"
 	@echo "ruleset      : nftables rulesets"
 	@echo "iptables     : iptables"
@@ -190,11 +192,11 @@ lbconf :
 	scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_1}.conf ${ADMIN_USER}@${HALB_FQDN_1}:keepalived.conf \
 	  && scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_2}.conf ${ADMIN_USER}@${HALB_FQDN_2}:keepalived.conf \
 	  && scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_3}.conf ${ADMIN_USER}@${HALB_FQDN_3}:keepalived.conf \
-	  && ansibash -u ${ADMIN_SRC_DIR}/systemd/99-keepalived.conf \
+	  && ansibash -u ${ADMIN_SRC_DIR}/systemd/keepalived.10-options.conf \
+	  && ansibash -u ${ADMIN_SRC_DIR}/systemd/haproxy.10-limits.conf \
+	  && ansibash -u ${ADMIN_SRC_DIR}/systemd/haproxy.20-quiet.conf \
 	  && ansibash -u ${ADMIN_SRC_DIR}/haproxy.cfg \
 	  && ansibash -u ${ADMIN_SRC_DIR}/haproxy-rsyslog.conf \
-	  && ansibash -u ${ADMIN_SRC_DIR}/etc.hosts \
-	  && ansibash -u ${ADMIN_SRC_DIR}/etc.environment \
 	  && ansibash -u ${ADMIN_SRC_DIR}/configure-halb.sh \
 	  && ansibash sudo bash configure-halb.sh ${HALB_CIDR} ${HALB_DEVICE} \
 	  |& tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.lbconf.${UTC}.log
