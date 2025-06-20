@@ -3,7 +3,7 @@
 #include Makefile.settings
 # … ⋮ ︙ • “” ‘’ – — ™ ® © ± ° ¹ ² ³ ¼ ½ ¾ ÷ × ₽ € ¥ £ ¢ ¤ ♻  ⚐ ⚑
 # ☢  ☣  ☠  ¦ ¶ § † ‡ ß µ ø Ø ƒ Δ ☡ ☈ ☧ ☩ ✚ ☨ ☦  ☓ ♰ ♱ ✖  ☘  웃 𝐀𝐏𝐏 𝐋𝐀𝐁
-# ⚠  ✅ 🚀 🚧 🛠️ 🔧 🔍 🧪 ⚡ ❌ 💡 🔒 📊 📈 🧩 📦 🧳 🥇 ✨️ 🔚
+# ⚠  ✅ 🚀 🚧 🛠️ 🔧 🔍 🧪 👈 ⚡ ❌ 💡 🔒 📊 📈 🧩 📦 🧳 🥇 ✨️ 🔚
 ##############################################################################
 ## Environment variable rules:
 ## - Any TRAILING whitespace KILLS its variable value and may break recipes.
@@ -44,9 +44,9 @@ export HALB_DEVICE   ?= eth0
 export HALB_FQDN_1   ?= a1.${HALB_DOMAIN}
 export HALB_FQDN_2   ?= a2.${HALB_DOMAIN}
 export HALB_FQDN_3   ?= a3.${HALB_DOMAIN}
-export HALB_K8S_PORT  	?= 8443
-export HALB_HTTP_PORT  	?= 30080
-export HALB_HTTPS_PORT 	?= 30443
+export HALB_PORT_K8S_PORT  	?= 8443
+export HALB_PORT_HTTP_PORT  	?= 30080
+export HALB_PORT_HTTPS_PORT 	?= 30443
 
 
 ##############################################################################
@@ -83,7 +83,7 @@ menu :
 	@echo "lbverify     : Verify HA-LB dynamics"
 	@echo "lbshow       : Show HA-LB status"
 	@echo "============== "
-	@echo "teardown     : kubeadm reset and cleanup at target node(s)"
+	@echo "teardown     : Teardown HAProxy and Keepalived; remove vIP from network device"
 	@echo "============== "
 	@echo "scan         : Nmap scan report"
 	@echo "status       : Print targets' status"
@@ -181,7 +181,7 @@ rpms :
 
 firewall :
 	ansibash -u firewalld-halb.sh
-	ansibash sudo bash firewalld-halb.sh ${HALB_K8S_PORT}
+	ansibash sudo bash firewalld-halb.sh ${HALB_PORT_K8S_PORT}
 
 #bash make.recipes.sh halb
 lbmake lbbuild :
@@ -210,9 +210,9 @@ lbshow lblook :
 	ansibash 'sudo journalctl -eu keepalived |grep -e Entering -e @'
 
 healthz :
-	curl -ks https://${HALB_VIP}:${HALB_K8S_PORT}/healthz;echo $$?
-	curl -ks https://kube.${HALB_DOMAIN}:${HALB_K8S_PORT}/healthz?verbose
+	curl -ks https://${HALB_VIP}:${HALB_PORT_K8S_PORT}/healthz;echo $$?
+	curl -ks https://kube.${HALB_DOMAIN}:${HALB_PORT_K8S_PORT}/healthz?verbose
 
 teardown :
-	@echo "  NOT IMPLEMENTED"
-#	ansibash sudo ip addr del ${HALB_VIP}/24 dev ${HALB_DEVICE}
+	ansibash -u teardown.sh
+	ansibash sudo bash teardown.sh '${HALB_VIP}' '${HALB_MASK}' '${HALB_DEVICE}'

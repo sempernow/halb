@@ -30,10 +30,10 @@ cp ${target}.tpl $target
 sed -i "s/LB_1_FQDN[[:space:]]LB_1_IPV4/$HALB_FQDN_1 $lb_1_ipv4/" $target
 sed -i "s/LB_2_FQDN[[:space:]]LB_2_IPV4/$HALB_FQDN_2 $lb_2_ipv4/" $target
 sed -i "s/LB_3_FQDN[[:space:]]LB_3_IPV4/$HALB_FQDN_3 $lb_3_ipv4/" $target
-sed -i "s/K8S_PORT/$HALB_K8S_PORT/" $target
+sed -i "s/K8S_PORT/$HALB_PORT_K8S_PORT/" $target
 sed -i "s/LB_DEVICE/$HALB_DEVICE/" $target
-sed -i "s/HTTP_PORT/$HALB_HTTP_PORT/" $target
-sed -i "s/HTTPS_PORT/$HALB_HTTPS_PORT/" $target
+sed -i "s/HTTP_PORT/$HALB_PORT_HTTP_PORT/" $target
+sed -i "s/HTTPS_PORT/$HALB_PORT_HTTPS_PORT/" $target
 
 
 ## @ keepalived
