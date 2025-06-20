@@ -1,0 +1,31 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ngx
+  namespace: default
+  labels:
+    app: ngx
+data:
+  default.conf: |-
+    server {
+        listen       80;
+        listen  [::]:80;
+        server_name  localhost;
+
+        location / {
+            root   /usr/share/nginx/html;
+            index  index.html index.htm;
+        }
+
+        location /meta {
+            add_header Content-Type application/json;
+            return 200 '{"host": "$hostname", "client_ip": "$remote_addr", "x-forwarded-for": "$http_x_forwarded_for", "date": "$time_iso8601"}';
+        }
+
+        error_page   500 502 503 504  /50x.html;
+        location = /50x.html {
+            root   /usr/share/nginx/html;
+        }
+    }
+
