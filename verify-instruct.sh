@@ -20,9 +20,9 @@ echo 'Show VIP : The current keepalived MASTER node'
 ansibash ip -4 -brief addr show $HALB_DEVICE |grep -e === -e $HALB_VIP
 
 # @ nc : Verify connectivity
-echo 'Verify connectivity : nc -zv $HALB_VIP $HALB_PORT'
-[[ $(type -t nc) ]] && nc -zv $HALB_VIP $HALB_PORT \
-    || echo "Use \`nc -zv $HALB_VIP $HALB_PORT\` to test connectivity"
+echo 'Verify connectivity : nc -zv $HALB_VIP $HALB_PORT_K8S'
+[[ $(type -t nc) ]] && nc -zv $HALB_VIP $HALB_PORT_K8S \
+    || echo "Use \`nc -zv $HALB_VIP $HALB_PORT_K8S\` to test connectivity"
 
 # @ ping : Verify HA (failover) dynamics
 [[ $(type -t ping) ]] && {

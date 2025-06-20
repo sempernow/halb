@@ -7,7 +7,8 @@
 [[ $(systemctl is-active firewalld.service) == 'active' ]] ||
     systemctl enable --now firewalld.service
 
-vport="$1"
+k8s_port="$1"
+stats_port="$2"
 svc=halb
 zone=$(firewall-cmd --get-active-zone |head -n1)
 at="--permanent --zone=$zone --service=$svc"
@@ -19,7 +20,8 @@ firewall-cmd $at --set-description="HAProxy/Keepalived in VRRP mode"
 firewall-cmd $at --add-port=80/tcp
 firewall-cmd $at --add-port=443/tcp
 firewall-cmd $at --add-port=6443/tcp
-firewall-cmd $at --add-port=$vport/tcp
+firewall-cmd $at --add-port=$k8s_port/tcp
+firewall-cmd $at --add-port=$stats_port/tcp
 
 firewall-cmd --permanent --zone=$zone --add-service=$svc
 

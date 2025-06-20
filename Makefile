@@ -28,6 +28,7 @@ INFO    := @bash -c 'printf $(YELLOW);echo "@ $$1";printf $(RESTORE)' MESSAGE
 ## Project Meta
 
 export PRJ_ROOT := $(shell pwd)
+export PRJ_GIT  := $(shell git config remote.origin.url)
 export LOG_PRE  := make
 export UTC      := $(shell date '+%Y-%m-%dT%H.%M.%Z')
 
@@ -41,12 +42,15 @@ export HALB_VIP6     ?= 0:0:0:0:0:ffff:c0a8:0b0b
 export HALB_MASK     ?= 24
 export HALB_CIDR     ?= ${HALB_VIP}/${HALB_MASK}
 export HALB_DEVICE   ?= eth0
+
 export HALB_FQDN_1   ?= a1.${HALB_DOMAIN}
 export HALB_FQDN_2   ?= a2.${HALB_DOMAIN}
 export HALB_FQDN_3   ?= a3.${HALB_DOMAIN}
-export HALB_PORT_K8S_PORT  	?= 8443
-export HALB_PORT_HTTP_PORT  	?= 30080
-export HALB_PORT_HTTPS_PORT 	?= 30443
+
+export HALB_PORT_STATS ?= 8404
+export HALB_PORT_K8S   ?= 8443
+export HALB_PORT_HTTP  ?= 30080
+export HALB_PORT_HTTPS ?= 30443
 
 
 ##############################################################################
@@ -71,17 +75,19 @@ export ANSIBASH_USER        ?= ${ADMIN_USER}
 ## Recipes : Meta
 
 menu :
-	$(INFO) 'Install HA Application Load Balancer onto all target hosts : RHEL9 is expected'
+	$(INFO) 'Install HA Application Load Balancer (HALB) onto all target hosts : RHEL9 is expected'
 	@echo "upgrade      : dnf upgrade"
 	@echo "selinux      : Set SELinux mode"
 	@echo "reboot       : Reboot hosts"
 	@echo "rpms         : Install HAProxy/Keepalived"
 	@echo "============== "
-	@echo "firewall     : Configure firewalld for HALB"
-	@echo "lbmake       : Generate HA-LB configurations from .tpl files"
-	@echo "lbconf       : Configure HA LB on all control nodes"
-	@echo "lbverify     : Verify HA-LB dynamics"
-	@echo "lbshow       : Show HA-LB status"
+	@echo "firewall     : Configure firewalld of target hosts for HALB"
+	@echo "build        : Generate HALB configurations from .tpl files"
+	@echo "push         : Push the build to target hosts"
+	@echo "conf         : Configure HALB on target hosts"
+	@echo "verify       : Verify HALB dynamics"
+	@echo "show         : Show HALB status"
+	@echo "log          : Show selected recent HAProxy/Keepalived logs"
 	@echo "============== "
 	@echo "teardown     : Teardown HAProxy and Keepalived; remove vIP from network device"
 	@echo "============== "
@@ -116,7 +122,7 @@ tree :
 	tree -d |tee tree-d
 html :
 	find . -type f ! -path './.git/*' -name '*.md' -exec md2html.exe "{}" \;
-commit push : html mode
+commit : html mode
 	gc && git push && gl && gs
 
 
@@ -129,9 +135,9 @@ commit push : html mode
 # - Protecting a VIP requires network admin.
 scan :
 	sudo nmap -sn ${HALB_CIDR} \
-	  |& tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.scan.nmap.${UTC}.log
+	    |tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.scan.nmap.${UTC}.log
 #	sudo arp-scan --interface ${HALB_DEVICE} --localnet \
-#	  |& tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.scan.arp-scan.${UTC}.log
+#	    |tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.scan.arp-scan.${UTC}.log
 
 # Smoke test this setup
 status :
@@ -140,11 +146,12 @@ status :
 	    && printf "%12s: %s\n" Kernel $$(uname -r) \
 	    && printf "%12s: %s\n" firewalld $$(systemctl is-active firewalld.service) \
 	    && printf "%12s: %s\n" SELinux $$(getenforce) \
-	    && printf "%12s: %s\n" containerd $$(systemctl is-active containerd) \
+	    && printf "%12s: %s\n" haproxy $$(systemctl is-active haproxy) \
+	    && printf "%12s: %s\n" keepalived $$(systemctl is-active keepalived) \
 	    && printf "%12s: %s\n" kubelet $$(systemctl is-active kubelet) \
 	  '
 sealert :
-	ansibash 'sudo sealert -l "*"'
+	ansibash 'sudo sealert -l "*" |grep -e == -e "Source Path" -e "Last Seen" |grep -v 2024 |grep -B1 -e == -e "Last Seen"'
 net:
 	ansibash '\
 	    sudo nmcli dev status; \
@@ -158,7 +165,6 @@ iptables:
 psrss :
 	ansibash -s scripts/psrss.sh
 
-# Configure bash shell of target hosts using the declared Git project
 userrc :
 	ansibash 'git clone https://github.com/sempernow/userrc 2>/dev/null || echo ok'
 	ansibash 'pushd userrc && git pull && make sync-user && make user'
@@ -166,53 +172,55 @@ userrc :
 reboot :
 	ansibash sudo reboot
 
-## Host config
 upgrade :
 	ansibash sudo dnf -y --color=never upgrade \
-	  |& tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.upgrade.${UTC}.log
+	    |tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.upgrade.${UTC}.log
 selinux :
 	ansibash -s ${ADMIN_SRC_DIR}/configure-selinux.sh enforcing \
-	  |& tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.selinux.${UTC}.log
+	    |tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.selinux.${UTC}.log
 
-## Install K8s and all deps : RPM(s), binaries, systemd, and other configs
 rpms :
 	ansibash sudo dnf -y install conntrack haproxy keepalived \
-	  |& tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.rpms.${UTC}.log
+	    |tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.rpms.${UTC}.log
 
+install : firewall build push conf
 firewall :
 	ansibash -u firewalld-halb.sh
-	ansibash sudo bash firewalld-halb.sh ${HALB_PORT_K8S_PORT}
-
-#bash make.recipes.sh halb
-lbmake lbbuild :
+	ansibash sudo bash firewalld-halb.sh ${HALB_PORT_K8S} ${HALB_PORT_STATS}
+build :
 	bash ${ADMIN_SRC_DIR}/build-halb.sh
-
-#bash halb/push-halb.sh
-lbconf :
+push :
 	scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_1}.conf ${ADMIN_USER}@${HALB_FQDN_1}:keepalived.conf \
-	  && scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_2}.conf ${ADMIN_USER}@${HALB_FQDN_2}:keepalived.conf \
-	  && scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_3}.conf ${ADMIN_USER}@${HALB_FQDN_3}:keepalived.conf \
-	  && ansibash -u ${ADMIN_SRC_DIR}/systemd/keepalived.10-options.conf \
-	  && ansibash -u ${ADMIN_SRC_DIR}/systemd/haproxy.10-limits.conf \
-	  && ansibash -u ${ADMIN_SRC_DIR}/systemd/haproxy.20-quiet.conf \
-	  && ansibash -u ${ADMIN_SRC_DIR}/haproxy.cfg \
-	  && ansibash -u ${ADMIN_SRC_DIR}/haproxy-rsyslog.conf \
-	  && ansibash -u ${ADMIN_SRC_DIR}/configure-halb.sh \
-	  && ansibash sudo bash configure-halb.sh ${HALB_CIDR} ${HALB_DEVICE} \
-	  |& tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.lbconf.${UTC}.log
-
-lbverify :
-	bash ${ADMIN_SRC_DIR}/verify-instruct.sh
-
-lbshow lblook :
-#ansibash ip -4 -brief addr show dev ${HALB_DEVICE} |grep -e ${HALB_VIP} -e ===
+	    && scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_2}.conf ${ADMIN_USER}@${HALB_FQDN_2}:keepalived.conf \
+	    && scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_3}.conf ${ADMIN_USER}@${HALB_FQDN_3}:keepalived.conf \
+	    && ansibash -u ${ADMIN_SRC_DIR}/haproxy.cfg \
+	    && ansibash -u ${ADMIN_SRC_DIR}/configure-halb.sh \
+	    && ansibash -u ${ADMIN_SRC_DIR}/systemd/keepalived.10-options.conf \
+	    && ansibash -u ${ADMIN_SRC_DIR}/systemd/haproxy.10-limits.conf \
+	    && ansibash -u ${ADMIN_SRC_DIR}/systemd/haproxy.20-quiet.conf \
+	    && ansibash -u ${ADMIN_SRC_DIR}/haproxy-rsyslog.conf
+pre :
+	ansibash 'sudo haproxy -c -f haproxy.cfg && sudo keepalived -n -l -f keepalived.conf'
+conf :
+	  ansibash sudo bash configure-halb.sh \
+	      |tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.conf.${UTC}.log
+update :
+	  ansibash sudo bash configure-halb.sh update \
+	      |tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.update.${UTC}.log
+show :
 	ansibash ip -4 -brief addr show dev ${HALB_DEVICE}
 	ansibash 'sudo journalctl -eu keepalived |grep -e Entering -e @'
-
-healthz :
-	curl -ks https://${HALB_VIP}:${HALB_PORT_K8S_PORT}/healthz;echo $$?
-	curl -ks https://kube.${HALB_DOMAIN}:${HALB_PORT_K8S_PORT}/healthz?verbose
-
+log :
+	ansibash  "sudo journalctl -eu haproxy --no-pager |grep -e == -e DOWN |tail -n 20"
+	ansibash  "sudo journalctl -eu keepalived --no-pager |tail -n 20"
+verify :
+	bash ${ADMIN_SRC_DIR}/verify-instruct.sh
+stats :
+	curl -sIX GET http://${HALB_VIP}:${HALB_PORT_STATS}/stats;echo $$?
 teardown :
 	ansibash -u teardown.sh
 	ansibash sudo bash teardown.sh '${HALB_VIP}' '${HALB_MASK}' '${HALB_DEVICE}'
+
+healthz :
+	curl -ks https://${HALB_VIP}:${HALB_PORT_K8S}/healthz;echo $$?
+	curl -ks https://kube.${HALB_DOMAIN}:${HALB_PORT_K8S}/healthz?verbose

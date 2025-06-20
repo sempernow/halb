@@ -60,21 +60,22 @@ defaults
     default-server  check inter 5s downinter 5s rise 1 fall 1 slowstart 60s maxconn 250 maxqueue 256 weight 100
 
 listen stats
-    bind *:8404
+    bind *:STATS_PORT
+    mode http
     stats enable
     stats uri /stats
     stats refresh 10s
     stats show-node
-    #stats auth admin:password   # optional basic auth
+    #stats auth admin:stats
 
 ## Frontend for K8s API Server
-frontend k8s-apiserver-front
+frontend k8s_api_front
     #bind                *:K8S_PORT interface LB_DEVICE
     bind                *:K8S_PORT
-    default_backend     k8s-apiserver-back
+    default_backend     k8s_api_back
 
 ## Backend for K8s API Server
-backend k8s-apiserver-back
+backend k8s_api_back
 
     # Verify TLS handshake
     #option      ssl-hello-chk
@@ -89,13 +90,13 @@ backend k8s-apiserver-back
     server      LB_3_FQDN LB_3_IPV4:6443 
 
 ## Frontend for K8s Ingress by HTTP
-frontend k8s-ingress-http
+frontend k8s_ingress_http_front
 
     bind                *:80
-    default_backend     k8s-ingress-http
+    default_backend     k8s_ingress_http_back
     
 ## Backend for K8s Ingress by HTTP
-backend k8s-ingress-http
+backend k8s_ingress_http_back
 
     # Verify TLS handshake
     #option      ssl-hello-chk
@@ -112,13 +113,13 @@ backend k8s-ingress-http
     server      LB_3_FQDN LB_3_IPV4:HTTP_PORT send-proxy
 
 ## Frontend for K8s Ingress HTTPS
-frontend k8s-ingress-https
+frontend k8s_ingress_https_front
 
     bind                *:443
-    default_backend     k8s-ingress-https
+    default_backend     k8s_ingress_https_back
     
 ## Backend for K8s Ingress HTTPS
-backend k8s-ingress-https
+backend k8s_ingress_https_back
 
     # Verify TLS handshake
     #option      ssl-hello-chk
@@ -133,13 +134,13 @@ backend k8s-ingress-https
     server      LB_3_FQDN LB_3_IPV4:HTTPS_PORT send-proxy
 
 ## Frontend for other Ingress or Service.type: LoadBalancer HTTPS
-# frontend other-ingress-https
+# frontend other_svc_front
 #
 #     bind                *:OTHER_TLS
-#     default_backend     other-ingress-https
+#     default_backend     other_svc_back
     
 ## Backend for other Ingress or Service.type: LoadBalancer HTTPS
-# backend other-ingress-https
+# backend other_svc_back
 #
 #     option      ssl-hello-chk
 #     #balance     roundrobin

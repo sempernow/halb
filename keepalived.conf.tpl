@@ -6,7 +6,7 @@
 
 global_defs {
     router_id K8S1
-    #max_auto_priority 50
+    max_auto_priority
     default_interface SET_DEVICE
     #vrrp_garp_interval 0
     #vrrp_gna_interval 0
@@ -17,14 +17,15 @@ global_defs {
 }
 
 vrrp_script check_haproxy {
-    # user root
+    user root
     # env { 
     #     VIP="SET_VIP"
     #     PORT="SET_PORT"
     # }
     ## Check if HAProxy is running
     script "/usr/bin/pgrep haproxy"
-
+    # SELinux denies:
+    #script "/usr/bin/systemctl is-active --quiet haproxy"
     interval 2  # Check every 2 seconds
     fall 3      # Mark the service as failed after 3 failures
     rise 2      # Mark the service as up after 2 successes
@@ -48,7 +49,6 @@ vrrp_instance VI_1 {
     virtual_ipaddress {
         SET_VIP/SET_MASK
     }
-
     # ## Unicast instead of default Multicast
     # unicast_src_ip THIS_IP
     # unicast_peer {

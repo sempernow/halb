@@ -33,6 +33,8 @@ for vip in "${VIPs[@]}"; do
     }
 done
 
+rm -f *halb.sh haproxy* keepalived*
+
 # echo "[INFO] Removing Keepalived and HAProxy configs..."
 # rm -f /etc/keepalived/keepalived.conf
 # rm -f /etc/haproxy/haproxy.cfg

@@ -12,6 +12,11 @@ pushd ${BASH_SOURCE%/*}
 ipv4(){
     nslookup $1 |grep -A1 $1 |grep Address |grep -v ${HALB_VIP:-__MEH__} |head -n1 |awk '{printf $2}'
 }
+trim(){
+    sed -i '/^[[:space:]]*#/d; s/[[:space:]]+#.*$//' $1
+    #sed -i '/^[[:space:]]*$/d' $1
+}
+header(){ echo "## GENERATED $(date -Is) : $PRJ_GIT" @ $(id -un)@$(hostname):${BASH_SOURCE##*/}; }
 
 vip="$HALB_VIP"
 
@@ -26,54 +31,77 @@ lb_3_ipv4=$(ipv4 ${HALB_FQDN_3})
 ## @ haproxy
 
 target='haproxy.cfg'
-cp ${target}.tpl $target
-sed -i "s/LB_1_FQDN[[:space:]]LB_1_IPV4/$HALB_FQDN_1 $lb_1_ipv4/" $target
-sed -i "s/LB_2_FQDN[[:space:]]LB_2_IPV4/$HALB_FQDN_2 $lb_2_ipv4/" $target
-sed -i "s/LB_3_FQDN[[:space:]]LB_3_IPV4/$HALB_FQDN_3 $lb_3_ipv4/" $target
-sed -i "s/K8S_PORT/$HALB_PORT_K8S_PORT/" $target
-sed -i "s/LB_DEVICE/$HALB_DEVICE/" $target
-sed -i "s/HTTP_PORT/$HALB_PORT_HTTP_PORT/" $target
-sed -i "s/HTTPS_PORT/$HALB_PORT_HTTPS_PORT/" $target
+cat ${target}.tpl \
+    |sed "s/LB_1_FQDN[[:space:]]LB_1_IPV4/$HALB_FQDN_1 $lb_1_ipv4/" \
+    |sed "s/LB_2_FQDN[[:space:]]LB_2_IPV4/$HALB_FQDN_2 $lb_2_ipv4/" \
+    |sed "s/LB_3_FQDN[[:space:]]LB_3_IPV4/$HALB_FQDN_3 $lb_3_ipv4/" \
+    |sed "s/LB_DEVICE/$HALB_DEVICE/" \
+    |sed "s/STATS_PORT/$HALB_PORT_STATS/" \
+    |sed "s/K8S_PORT/$HALB_PORT_K8S/" \
+    |sed "s/HTTP_PORT/$HALB_PORT_HTTP/" \
+    |sed "s/HTTPS_PORT/$HALB_PORT_HTTPS/" \
+    |sed '/^[[:space:]]*#/d; s/[[:space:]]+#.*$//' \
+    >tmp
 
+cat <(header) tmp >$target 
+rm tmp
 
 ## @ keepalived
 
-pass="$(cat /dev/urandom |tr -dc [:alnum:] |fold -w22 |head -n1)" 
+pass="$(cat /dev/urandom |tr -dc [:alnum:] |fold -w8 |head -n1)" 
 
 target='keepalived.conf'
-cp ${target}.tpl $target
-sed -i "s/SET_DEVICE/$HALB_DEVICE/" $target
-sed -i "s/SET_PASS/$pass/" $target
-sed -i "s/SET_VIP/$HALB_VIP/" $target
-sed -i "s/SET_MASK/$HALB_MASK/" $target
-sed -i "s/UNICAST_PEER_1/$lb_1_ipv4/" $target
-sed -i "s/UNICAST_PEER_2/$lb_2_ipv4/" $target
-sed -i "s/UNICAST_PEER_3/$lb_3_ipv4/" $target
+cat ${target}.tpl \
+    |sed  "s/SET_DEVICE/$HALB_DEVICE/" \
+    |sed "s/SET_PASS/$pass/" \
+    |sed "s/SET_VIP/$HALB_VIP/" \
+    |sed "s/SET_MASK/$HALB_MASK/" \
+    |sed "s/UNICAST_PEER_1/$lb_1_ipv4/" \
+    |sed "s/UNICAST_PEER_2/$lb_2_ipv4/" \
+    |sed "s/UNICAST_PEER_3/$lb_3_ipv4/" \
+    |sed "s/TRACK_DEVICE/$HALB_DEVICE/" \
+    |sed '/^[[:space:]]*#/d; s/[[:space:]]+#.*$//' \
+    >tmp
+
+cat <(header) tmp >$target 
+rm tmp
+
 ## Keepalived requires a unique configuration file (keepalived-*.conf) 
 ## at each HAProxy-LB node on which it runs.
 ## They are identical except for "priority VAL";
 ## each BACKUP must be unique and lower than that of MASTER.
-cp $target keepalived-$HALB_FQDN_1.conf
-cp $target keepalived-$HALB_FQDN_2.conf
-cp $target keepalived-$HALB_FQDN_3.conf
+cat $target \
+    |sed "/  $lb_1_ipv4/d" \
+    |sed "s/UNICAST_SRC_IP/$lb_1_ipv4/" \
+    |sed '/^[[:space:]]*#/d; s/[[:space:]]+#.*$//' \
+    >tmp
+
+cat <(header) tmp >keepalived-$HALB_FQDN_1.conf 
+rm tmp
+
+cat $target \
+    |sed "s/state MASTER/state BACKUP/" \
+    |sed "s/priority 255/priority 254/" \
+    |sed "/  $lb_2_ipv4/d" \
+    |sed "s/UNICAST_SRC_IP/$lb_2_ipv4/" \
+    |sed '/^[[:space:]]*#/d; s/[[:space:]]+#.*$//' \
+    >tmp
+
+cat <(header) tmp >keepalived-$HALB_FQDN_2.conf 
+rm tmp
+
+cat $target \
+    |sed "s/state MASTER/state BACKUP/" \
+    |sed "s/priority 255/priority 253/" \
+    |sed "/  $lb_3_ipv4/d" \
+    |sed "s/UNICAST_SRC_IP/$lb_3_ipv4/" \
+    |sed '/^[[:space:]]*#/d; s/[[:space:]]+#.*$//' \
+    >tmp
+
+cat <(header) tmp >keepalived-$HALB_FQDN_3.conf 
+rm tmp
+
 rm $target
-
-target="keepalived-$HALB_FQDN_1.conf"
-sed -i "/  $lb_1_ipv4/d" $target
-sed -i "s/UNICAST_SRC_IP/$lb_1_ipv4/" $target
-
-target="keepalived-$HALB_FQDN_2.conf"
-sed -i "s/state MASTER/state BACKUP/" $target
-sed -i "s/priority 255/priority 254/" $target
-sed -i "/  $lb_2_ipv4/d" $target
-sed -i "s/UNICAST_SRC_IP/$lb_2_ipv4/" $target
-
-target="keepalived-$HALB_FQDN_3.conf"
-sed -i "s/state MASTER/state BACKUP/" $target
-sed -i "s/priority 255/priority 253/" $target
-sed -i "/  $lb_3_ipv4/d" $target
-sed -i "s/UNICAST_SRC_IP/$lb_3_ipv4/" $target
-
 
 ## @ etc.hosts <=> /etc/hosts : Append HALB entries
 
