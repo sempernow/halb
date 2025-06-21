@@ -27,10 +27,10 @@ firewall-cmd --permanent --zone=$zone --add-service=$svc
 
 at="--permanent --zone=$zone"
 
-## Allow ICMP echo-request (via its inversion hellscape)
-sudo firewall-cmd $at --add-icmp-block-inversion    # Invert so block allows
-sudo firewall-cmd $at --add-icmp-block=echo-request # block (allow) request 
-sudo firewall-cmd $at --add-icmp-block=echo-reply   # block (allow) reply
+## Allow ICMP for ping request/reply : Inversion is *required* here when target is DROP 
+firewall-cmd $at --add-icmp-block-inversion    # Invert so block allows
+firewall-cmd $at --add-icmp-block=echo-request # block (allow) request 
+firewall-cmd $at --add-icmp-block=echo-reply   # block (allow) reply
 
 ## VRRP : Multicast
 firewall-cmd $at --add-rich-rule='rule family="ipv4" destination address="224.0.0.0/4" accept'

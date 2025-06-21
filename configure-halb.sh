@@ -75,7 +75,8 @@ cp haproxy.20-quiet.conf $dir/20-quiet.conf
 chmod 0644 $dir/20-quiet.conf
 chown -R root:root $dir
 
-## Prevent journalctl broadcasts of priority 0 (emerg), 1 (alert) or 2 (crit)
+## Add a journald drop-in that prevents its default broadcasts to stdout/stderr
+## of logs having the highest priorities: 0 (emerg), 1 (alert) or 2 (crit).
 mkdir -p /etc/systemd/journald.conf.d
 cat <<EOH >/etc/systemd/journald.conf.d/no-wall.conf
 [Journal]
