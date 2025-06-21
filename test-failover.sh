@@ -1,23 +1,7 @@
 #!/usr/bin/env bash
 #################################################
-# Verify/Instruct on HA LB 
+# Test HALB failover 
 #################################################
-
-# @ firewalld
-echo '=== HA-LB : firewalld settings'
-export zone=$(firewall-cmd --get-active-zone |head -n1)
-export svc=halb
-ansibash -c "
-    sudo firewall-cmd --zone=$zone --list-all
-    sudo firewall-cmd --direct --get-all-rules
-    sudo firewall-cmd --info-service=$svc
-"
-
-echo '=== HA-LB : Verify dynamics'
-# @ ip : Show 'global' route
-echo 'Show VIP : The current keepalived MASTER node'
-#ansibash ip -4 addr |grep -e === -e $HALB_VIP
-ansibash ip -4 -brief addr show $HALB_DEVICE |grep -e === -e $HALB_VIP
 
 # @ nc : Verify connectivity
 echo 'Verify connectivity : nc -zv $HALB_VIP $HALB_PORT_K8S'

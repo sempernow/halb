@@ -25,8 +25,14 @@ firewall-cmd $at --add-port=$stats_port/tcp
 
 firewall-cmd --permanent --zone=$zone --add-service=$svc
 
-## VRRP : Multicast
 at="--permanent --zone=$zone"
+
+## Allow ICMP echo-request (via its inversion hellscape)
+sudo firewall-cmd $at --add-icmp-block-inversion    # Invert so block allows
+sudo firewall-cmd $at --add-icmp-block=echo-request # block (allow) request 
+sudo firewall-cmd $at --add-icmp-block=echo-reply   # block (allow) reply
+
+## VRRP : Multicast
 firewall-cmd $at --add-rich-rule='rule family="ipv4" destination address="224.0.0.0/4" accept'
 
 ## VRRP : Protocol 112 (an L3 protocol)

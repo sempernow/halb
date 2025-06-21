@@ -37,6 +37,7 @@ export UTC      := $(shell date '+%Y-%m-%dT%H.%M.%Z')
 ## HAProxy/Keepalived : HA Application Load Balancer (HALB)
 
 export HALB_DOMAIN   ?= lime.lan
+export HALB_FQDN     ?= kube.${HALB_DOMAIN}
 export HALB_VIP      ?= 192.168.11.11
 export HALB_VIP6     ?= 0:0:0:0:0:ffff:c0a8:0b0b
 export HALB_MASK     ?= 24
@@ -81,13 +82,16 @@ menu :
 	@echo "reboot       : Reboot hosts"
 	@echo "rpms         : Install HAProxy/Keepalived"
 	@echo "============== "
-	@echo "firewall     : Configure firewalld of target hosts for HALB"
-	@echo "build        : Generate HALB configurations from .tpl files"
-	@echo "push         : Push the build to target hosts"
-	@echo "conf         : Configure HALB on target hosts"
-	@echo "verify       : Verify HALB dynamics"
-	@echo "show         : Show HALB status"
-	@echo "log          : Show selected recent HAProxy/Keepalived logs"
+	@echo "Install      : Install HALB by recipes : firewall build push conf"
+	@echo "  firewall   : Configure firewalld of target hosts for HALB"
+	@echo "  build      : Generate HALB configurations from .tpl files"
+	@echo "  push       : Push the app-config files to target hosts"
+	@echo "  conf       : Configure HALB on target hosts"
+	@echo "update       : Update /etc/…/haproxy.cfg & /etc/…/keepalived.conf"
+	@echo "show         : Show HALB processes"
+	@echo "log          : Selected recent app logs : journalctl -eu …"
+	@echo "stats        : cURL GET /stats (HAProxy endpoint)"
+	@echo "test         : Test HALB failover"
 	@echo "============== "
 	@echo "teardown     : Teardown HAProxy and Keepalived; remove vIP from network device"
 	@echo "============== "
@@ -213,14 +217,14 @@ show :
 log :
 	ansibash  "sudo journalctl -eu haproxy --no-pager |grep -e == -e DOWN |tail -n 20"
 	ansibash  "sudo journalctl -eu keepalived --no-pager |tail -n 20"
-verify :
-	bash ${ADMIN_SRC_DIR}/verify-instruct.sh
+test :
+	bash ${ADMIN_SRC_DIR}/test-failover.sh
 stats :
-	curl -sIX GET http://${HALB_VIP}:${HALB_PORT_STATS}/stats;echo $$?
+	curl -sIX GET http://${HALB_VIP}:${HALB_PORT_STATS}/stats/ |grep HTTP || echo ERR : $$?
+	curl -sIX GET http://${HALB_FQDN}:${HALB_PORT_STATS}/stats/ |grep HTTP || echo ERR : $$?
+healthz :
+	curl -ksfIX GET https://${HALB_VIP}:${HALB_PORT_K8S}/healthz/ |grep HTTP || echo ERR : $$?
+	curl -ks https://${HALB_FQDN}:${HALB_PORT_K8S}/healthz?verbose || echo ERR : $$?
 teardown :
 	ansibash -u teardown.sh
 	ansibash sudo bash teardown.sh '${HALB_VIP}' '${HALB_MASK}' '${HALB_DEVICE}'
-
-healthz :
-	curl -ks https://${HALB_VIP}:${HALB_PORT_K8S}/healthz;echo $$?
-	curl -ks https://kube.${HALB_DOMAIN}:${HALB_PORT_K8S}/healthz?verbose
