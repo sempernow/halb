@@ -4,20 +4,22 @@
 #################################################
 
 # @ nc : Verify connectivity
-echo 'Verify connectivity : nc -zv $HALB_VIP $HALB_PORT_K8S'
-[[ $(type -t nc) ]] && nc -zv $HALB_VIP $HALB_PORT_K8S \
-    || echo "Use \`nc -zv $HALB_VIP $HALB_PORT_K8S\` to test connectivity"
+test="nc -zvw2 $HALB_VIP $HALB_PORT_K8S $HALB_PORT_STATS https http"
+echo "🔍  Verify connectivity : $test"
+[[ $(type -t nc) ]] && {
+    got="$($test 2>&1)" && echo -e "✅  ok\n$got" || echo "❌ $got"
+} || { echo "🧩  REQUIREs utility: nc"; }
 
 # @ ping : Verify HA (failover) dynamics
 [[ $(type -t ping) ]] && {
     echo '
-        Verify FAILOVER (HA) dynamics:
+        Verify FAILOVER (HA) dynamics"
         
-        While ping is running, 
-        shutdown the keepalived MASTER node.
+        While this ping test is running, reboot
+        or shutdown the Keepalive MASTER host. 👈
 
         Connectivity should persist as long as 
-        at least one HA-LB node is running.
+        at least one HALB host is running.
 
         PRESS ENTER when ready to test. 
 

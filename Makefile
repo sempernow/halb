@@ -222,6 +222,9 @@ test :
 stats :
 	curl -sIX GET http://${HALB_VIP}:${HALB_PORT_STATS}/stats/ |grep HTTP || echo ERR : $$?
 	curl -sIX GET http://${HALB_FQDN}:${HALB_PORT_STATS}/stats/ |grep HTTP || echo ERR : $$?
+	curl -sIX GET http://${HALB_FQDN_1}:${HALB_PORT_STATS}/stats/ |grep HTTP || echo ERR : $$?
+	curl -sIX GET http://${HALB_FQDN_2}:${HALB_PORT_STATS}/stats/ |grep HTTP || echo ERR : $$?
+	curl -sIX GET http://${HALB_FQDN_3}:${HALB_PORT_STATS}/stats/ |grep HTTP || echo ERR : $$?
 healthz :
 	curl -ksfIX GET https://${HALB_VIP}:${HALB_PORT_K8S}/healthz/ |grep HTTP || echo ERR : $$?
 	curl -ks https://${HALB_FQDN}:${HALB_PORT_K8S}/healthz?verbose || echo ERR : $$?
