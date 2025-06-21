@@ -1,6 +1,6 @@
 # HALB :  HA Application Load Balancer built of [HAProxy / Keepalived](https://chatgpt.com/share/6804fcc4-45e0-8009-aaac-ccf8e9ed74de) 
 
-Provision a three-host application load balancer (ALB) that handles failover on any host or ALB-process failure.
+Provision a three-host, TCP-mode application load balancer (ALB) that uses Virtual Router Redundancy Protocol (VRRP) to handle failover on loss of any host or ALB process.
 
 ## __vIP__ for VRRP @ AD DNS
 
@@ -23,7 +23,7 @@ default
     default-server check inter 10s downinter 5s rise 2 fall 2 slowstart 60s maxconn 250 maxqueue 256 weight 100
 ```
 
-__Field-by-field Breakdown__:
+__Settings : Field-by-field Breakdown__:
 
 | Directive     | Meaning                                                                                  | Suitability for K8s |
 |---------------|-------------------------------------------------------------------------------------------|----------------------|
