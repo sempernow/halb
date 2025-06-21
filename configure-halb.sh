@@ -75,6 +75,13 @@ cp haproxy.20-quiet.conf $dir/20-quiet.conf
 chmod 0644 $dir/20-quiet.conf
 chown -R root:root $dir
 
+## Prevent journalctl broadcasts of priority 0 (emerg), 1 (alert) or 2 (crit)
+mkdir -p /etc/systemd/journald.conf.d
+cat <<EOH >/etc/systemd/journald.conf.d/no-wall.conf
+[Journal]
+ForwardToWall=no
+EOH
+
 ## Configure HALB logging
 
 target=/etc/rsyslog.d/99-haproxy.conf 
@@ -92,7 +99,9 @@ etc_configs
 
 setsebool -P haproxy_connect_any 1
 systemctl daemon-reload
+systemctl daemon-reexec	
 systemctl restart rsyslog.service
+systemctl restart systemd-journald
 systemctl enable --now keepalived
 systemctl enable --now haproxy
 
