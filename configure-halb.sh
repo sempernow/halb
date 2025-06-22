@@ -4,17 +4,17 @@
 #####################################################
 update=$1
 [[ "$(id -u)" -ne 0 ]] && {
-    echo "⚠  ERR : MUST run as root" >&2
+    echo "⚠️️️  ERR : MUST run as root" >&2
 
     exit 11
 }
 type -t haproxy || {
-    echo "⚠  ERR : haproxy is NOT INSTALLED" >&2
+    echo "⚠️️  ERR : haproxy is NOT INSTALLED" >&2
 
     exit 22 
 }
 type -t keepalived || {
-    echo "⚠  ERR : keepalived is NOT INSTALLED" >&2
+    echo "⚠️️  ERR : keepalived is NOT INSTALLED" >&2
 
     exit 23
 }
@@ -22,7 +22,7 @@ verify(){
     for app in haproxy keepalived;do
         systemctl is-active $app.service -q &&
             echo "✅  $app.service ok" >&2 || {
-                echo "⚠  $app.service is NOT active" >&2
+                echo "⚠️️  $app.service is NOT active" >&2
 
                 return 88
             }

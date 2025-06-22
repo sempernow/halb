@@ -3,7 +3,7 @@
 # Process the *.tpl files
 #################################################################
 [[ $HALB_VIP ]] || { 
-    echo "⚠  ERR : Environment is NOT CONFIGURED"
+    echo "⚠️  ERR : Environment is NOT CONFIGURED"
     
     exit 11
 }
@@ -24,9 +24,9 @@ lb_1_ipv4=$(ipv4 ${HALB_FQDN_1})
 lb_2_ipv4=$(ipv4 ${HALB_FQDN_2})
 lb_3_ipv4=$(ipv4 ${HALB_FQDN_3})
 
-[[ $lb_1_ipv4 ]] || { echo '⚠  FAIL @ lb_1_ipv4';exit 21; }
-[[ $lb_2_ipv4 ]] || { echo '⚠  FAIL @ lb_2_ipv4';exit 22; }
-[[ $lb_3_ipv4 ]] || { echo '⚠  FAIL @ lb_3_ipv4';exit 23; }
+[[ $lb_1_ipv4 ]] || { echo '⚠️  FAIL @ lb_1_ipv4';exit 21; }
+[[ $lb_2_ipv4 ]] || { echo '⚠️  FAIL @ lb_2_ipv4';exit 22; }
+[[ $lb_3_ipv4 ]] || { echo '⚠️  FAIL @ lb_3_ipv4';exit 23; }
 
 ## @ haproxy
 

@@ -33,7 +33,7 @@ __Settings : Field-by-field Breakdown__:
 | `rise 2`      | Mark server UP after 2 consecutive successful checks                                       | ✅ Reasonable         |
 | `fall 2`      | Mark server DOWN after 2 consecutive failed checks                                         | ✅ Fast failover      |
 | `slowstart 60s` | When server comes back online, ramp up traffic gradually over 60 seconds                | ✅ Recommended for API servers or ingress endpoints that need warm-up time |
-| `maxconn 250` | Limit max concurrent connections to this server                                            | ⚠️ Fine if servers aren't under high pressure, but maybe raise for large clusters |
+| `maxconn 250` | Limit max concurrent connections to this server                                            | ⚠️️️️️ Fine if servers aren't under high pressure, but maybe raise for large clusters |
 | `maxqueue 256`| If `maxconn` is reached, queue up to 256 connections                                       | ✅ Good               |
 | `weight 100`  | Default load balancing weight                                                              | ✅ Standard           |
 
