@@ -36,12 +36,17 @@ export UTC      := $(shell date '+%Y-%m-%dT%H.%M.%Z')
 ##############################################################################
 ## HAProxy/Keepalived : HA Application Load Balancer (HALB)
 
-export HALB_DOMAIN   ?= lime.lan
-export HALB_FQDN     ?= kube.${HALB_DOMAIN}
-export HALB_VIP      ?= 192.168.11.11
-export HALB_VIP6     ?= 0:0:0:0:0:ffff:c0a8:0b0b
-export HALB_MASK     ?= 24
-export HALB_CIDR     ?= ${HALB_VIP}/${HALB_MASK}
+export HALB_DOMAIN       ?= lime.lan
+export HALB_FQDN         ?= kube.${HALB_DOMAIN}
+export HALB_MASK         ?= 24
+export HALB_MASK6        ?= 64
+export HALB_DOMAIN_CIDR  ?= 192.168.11.0/${HALB_MASK}
+export HALB_DOMAIN_CIDR6 ?= fd00:11::/${HALB_MASK6}
+export HALB_VIP          ?= 192.168.11.11
+export HALB_VIP6         ?= fd00:11::100
+export HALB_CIDR         ?= ${HALB_VIP}/${HALB_MASK}
+export HALB_CIDR6        ?= ${HALB_VIP6}/${HALB_MASK6}
+
 export HALB_DEVICE   ?= eth0
 
 export HALB_FQDN_1   ?= a1.${HALB_DOMAIN}
