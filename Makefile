@@ -16,6 +16,7 @@
 ##   - Docker YAML `environment:` OVERRIDEs YAML `env_file:`.
 ##   - CMD-inline OVERRIDEs ALL REGARDLESS; `make recipeX FOO=new BAR=new2`.
 
+
 ##############################################################################
 ## $(INFO) : Usage : `$(INFO) 'What ever'` prints a stylized "@ What ever".
 SHELL   := /bin/bash
@@ -34,10 +35,31 @@ export UTC      := $(shell date '+%Y-%m-%dT%H.%M.%Z')
 
 
 ##############################################################################
+## ansibash
+
+## Public-key string of ssh user must be in ~/.ssh/authorized_keys of ADMIN_USER at all targets.
+#export ADMIN_USER            ?= $(shell id -un)
+export ADMIN_USER            ?= u2
+export ADMIN_KEY             ?= ${HOME}/.ssh/vm_lime
+export ADMIN_HOST            ?= a0
+export ADMIN_NODES_CONTROL   ?= a1 a2 a3
+export ADMIN_TARGET_LIST     ?= ${ADMIN_NODES_CONTROL}
+export ADMIN_SRC_DIR         ?= $(shell pwd)
+#export ADMIN_DST_DIR         ?= ${ADMIN_SRC_DIR}
+export ADMIN_DST_DIR         ?= /tmp/$(shell basename "${ADMIN_SRC_DIR}")
+
+export ANSIBASH_TARGET_LIST  ?= ${ADMIN_TARGET_LIST}
+export ANSIBASH_USER         ?= ${ADMIN_USER}
+
+
+##############################################################################
 ## HAProxy/Keepalived : HA Application Load Balancer (HALB)
 
 export HALB_DOMAIN       ?= lime.lan
 export HALB_FQDN         ?= kube.${HALB_DOMAIN}
+export HALB_FQDN_1       ?= a1.${HALB_DOMAIN}
+export HALB_FQDN_2       ?= a2.${HALB_DOMAIN}
+export HALB_FQDN_3       ?= a3.${HALB_DOMAIN}
 export HALB_MASK         ?= 24
 export HALB_MASK6        ?= 64
 export HALB_DOMAIN_CIDR  ?= 192.168.11.0/${HALB_MASK}
@@ -46,35 +68,11 @@ export HALB_VIP          ?= 192.168.11.11
 export HALB_VIP6         ?= fd00:11::100
 export HALB_CIDR         ?= ${HALB_VIP}/${HALB_MASK}
 export HALB_CIDR6        ?= ${HALB_VIP6}/${HALB_MASK6}
-
-export HALB_DEVICE   ?= eth0
-
-export HALB_FQDN_1   ?= a1.${HALB_DOMAIN}
-export HALB_FQDN_2   ?= a2.${HALB_DOMAIN}
-export HALB_FQDN_3   ?= a3.${HALB_DOMAIN}
-
-export HALB_PORT_STATS ?= 8404
-export HALB_PORT_K8S   ?= 8443
-export HALB_PORT_HTTP  ?= 30080
-export HALB_PORT_HTTPS ?= 30443
-
-
-##############################################################################
-## ansibash
-
-## Public-key string of ssh user must be in ~/.ssh/authorized_keys of ADMIN_USER at all targets.
-#export ADMIN_USER          ?= $(shell id -un)
-export ADMIN_USER          ?= u2
-export ADMIN_KEY           ?= ${HOME}/.ssh/vm_lime
-export ADMIN_HOST          ?= a0
-export ADMIN_NODES_CONTROL ?= a1 a2 a3
-export ADMIN_TARGET_LIST   ?= ${ADMIN_NODES_CONTROL}
-export ADMIN_SRC_DIR       ?= $(shell pwd)
-#export ADMIN_DST_DIR       ?= ${ADMIN_SRC_DIR}
-export ADMIN_DST_DIR       ?= /tmp/$(shell basename "${ADMIN_SRC_DIR}")
-
-export ANSIBASH_TARGET_LIST ?= ${ADMIN_TARGET_LIST}
-export ANSIBASH_USER        ?= ${ADMIN_USER}
+export HALB_DEVICE       ?= eth0
+export HALB_PORT_STATS   ?= 8404
+export HALB_PORT_K8S     ?= 8443
+export HALB_PORT_HTTP    ?= 30080
+export HALB_PORT_HTTPS   ?= 30443
 
 
 ##############################################################################
