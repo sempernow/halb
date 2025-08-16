@@ -1,6 +1,6 @@
-# HALB :  HA Application Load Balancer built of [HAProxy / Keepalived](https://chatgpt.com/share/6804fcc4-45e0-8009-aaac-ccf8e9ed74de) 
+# HALB :  HA Network Load Balancer built of [HAProxy / Keepalived](https://chatgpt.com/share/6804fcc4-45e0-8009-aaac-ccf8e9ed74de) 
 
-Provision a three-host, TCP-mode application load balancer (ALB) that uses Virtual Router Redundancy Protocol (VRRP) to handle failover on loss of any host or ALB process.
+Provision a 3-node layer 3 load balancer that implements Virtual Router Redundancy Protocol (VRRP) to handle failover on loss of any host or NLB process.
 
 ## __vIP__ for VRRP @ AD DNS
 
@@ -64,12 +64,3 @@ __Settings : Field-by-field Breakdown__:
 
 ---
 
-## ✅ Final Verdict
-
-**Yes**, these settings are solid for production **Kubernetes upstreams** — both control and data plane. You can fine-tune based on:
-
-- Server capacity
-- Acceptable recovery time
-- Connection pressure
-
-If you want help customizing these for control plane vs data plane backends (e.g., `k8s-api` vs `k8s-data`), I can write those backend blocks out for you.

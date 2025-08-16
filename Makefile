@@ -1,9 +1,9 @@
 ##############################################################################
 ## Makefile.settings : Environment Variables for Makefile(s)
 #include Makefile.settings
-# … ⋮ ︙ • “” ‘’ – — ™ ® © ± ° ¹ ² ³ ¼ ½ ¾ ÷ × ₽ € ¥ £ ¢ ¤ ♻  ⚐ ⚑
-# ☢  ☣  ☠  ¦ ¶ § † ‡ ß µ ø Ø ƒ Δ ☡ ☈ ☧ ☩ ✚ ☨ ☦  ☓ ♰ ♱ ✖  ☘  웃 𝐀𝐏𝐏 𝐋𝐀𝐁
-# ⚠️ ✅ 🚀 🚧 🛠️ 🔧 🔍 🧪 👈 ⚡ ❌ 💡 🔒 📊 📈 🧩 📦 🧳 🥇 ✨️ 🔚
+# … ⋮ ︙ • “” ‘’ – — ™ ® © ± ° ¹ ² ³ ¼ ½ ¾ ÷ × ₽ € ¥ £ ¢ ¤ ♻ ⚐ ⚑ ✪ ❤ \ufe0f
+# ☢ ☣ ☠ ¦ ¶ § † ‡ ß µ Ø ƒ Δ ☡ ☈ ☧ ☩ ✚ ☨ ☦ ☓ ♰ ♱ ✖  ☘  웃 𝐀𝐏𝐏 🡸 🡺 ➔
+# ℹ️ ⚠️ ✅ ⌛ 🚀 🚧 🛠️ 🔧 🔍 🧪 👈 ⚡ ❌ 💡 🔒 📊 📈 🧩 📦 🥇 ✨️ 🔚
 ##############################################################################
 ## Environment variable rules:
 ## - Any TRAILING whitespace KILLS its variable value and may break recipes.
@@ -35,25 +35,7 @@ export UTC      := $(shell date '+%Y-%m-%dT%H.%M.%Z')
 
 
 ##############################################################################
-## ansibash
-
-## Public-key string of ssh user must be in ~/.ssh/authorized_keys of ADMIN_USER at all targets.
-#export ADMIN_USER            ?= $(shell id -un)
-export ADMIN_USER            ?= u2
-export ADMIN_KEY             ?= ${HOME}/.ssh/vm_lime
-export ADMIN_HOST            ?= a0
-export ADMIN_NODES_CONTROL   ?= a1 a2 a3
-export ADMIN_TARGET_LIST     ?= ${ADMIN_NODES_CONTROL}
-export ADMIN_SRC_DIR         ?= $(shell pwd)
-#export ADMIN_DST_DIR         ?= ${ADMIN_SRC_DIR}
-export ADMIN_DST_DIR         ?= /tmp/$(shell basename "${ADMIN_SRC_DIR}")
-
-export ANSIBASH_TARGET_LIST  ?= ${ADMIN_TARGET_LIST}
-export ANSIBASH_USER         ?= ${ADMIN_USER}
-
-
-##############################################################################
-## HAProxy/Keepalived : HA Application Load Balancer (HALB)
+## HAProxy/Keepalived : HA Network Load Balancer (HANLB)
 
 export HALB_DOMAIN       ?= lime.lan
 export HALB_FQDN         ?= kube.${HALB_DOMAIN}
@@ -76,10 +58,27 @@ export HALB_PORT_HTTPS   ?= 30443
 
 
 ##############################################################################
+## ansibash
+
+## Public-key string of ssh user must be in ~/.ssh/authorized_keys of ADMIN_USER at all targets.
+#export ADMIN_USER            ?= $(shell id -un)
+export ADMIN_USER            ?= u2
+export ADMIN_KEY             ?= ${HOME}/.ssh/vm_lime
+export ADMIN_HOST            ?= a0
+export ADMIN_TARGET_LIST     ?= a1 a2 a3
+export ADMIN_SRC_DIR         ?= $(shell pwd)
+#export ADMIN_DST_DIR         ?= ${ADMIN_SRC_DIR}
+export ADMIN_DST_DIR         ?= /tmp/$(shell basename "${ADMIN_SRC_DIR}")
+
+export ANSIBASH_TARGET_LIST  ?= ${ADMIN_TARGET_LIST}
+export ANSIBASH_USER         ?= ${ADMIN_USER}
+
+
+##############################################################################
 ## Recipes : Meta
 
 menu :
-	$(INFO) 'Install HA Application Load Balancer (HALB) onto all target hosts : RHEL9 is expected'
+	$(INFO) 'Install HA (Network) Load Balancer (HALB) onto all target hosts : RHEL9 is expected'
 	@echo "upgrade      : dnf upgrade"
 	@echo "selinux      : Set SELinux mode"
 	@echo "reboot       : Reboot hosts"
