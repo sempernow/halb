@@ -17,15 +17,15 @@ global_defs {
 }
 
 vrrp_script check_haproxy {
-    user root
+    # user root
     # env { 
     #     VIP="SET_VIP"
     #     PORT="SET_PORT"
     # }
     ## Check if HAProxy is running
-    script "/usr/bin/pgrep haproxy"
+    script "/usr/bin/systemctl is-active --quiet haproxy"
     # SELinux denies:
-    #script "/usr/bin/systemctl is-active --quiet haproxy"
+    #script "/usr/bin/pgrep haproxy"
     interval 2  # Check every 2 seconds
     fall 3      # Mark the service as failed after 3 failures
     rise 2      # Mark the service as up after 2 successes

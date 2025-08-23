@@ -1,6 +1,7 @@
 # HALB :  HA Network Load Balancer built of [HAProxy / Keepalived](https://chatgpt.com/share/6804fcc4-45e0-8009-aaac-ccf8e9ed74de) 
 
-Provision a 3-node layer 3 load balancer that implements Virtual Router Redundancy Protocol (VRRP) to handle failover on loss of any host or NLB process.
+Provision a 3-node, Layer 4 (TCP mode) load balancer that implements Virtual Router Redundancy Protocol (VRRP) 
+to handle failover on loss of any host or `haproxy` process.
 
 ## __vIP__ for VRRP @ AD DNS
 
@@ -11,7 +12,7 @@ Provision a 3-node layer 3 load balancer that implements Virtual Router Redundan
         - __`02:00:00:00:01:01`__
 - Add a DNS __`A`__ (Apex) __record__ that resolves to the vIP:
     - FQDN: __`k8s1.lime.lan`__
-- Add a __CNAME record__ for the upstream  application that resolves to the Apex (`k8s1.lime.lan`).   
+- Add a DNS __`CNAME` record__ for the upstream  application that resolves to the Apex record's IP address.   
       This will be the application host  that is announced and otherwise __presented to external clients__:
     - FQDN: __`kube.lime.lan`__
 
@@ -25,17 +26,17 @@ default
 
 __Settings : Field-by-field Breakdown__:
 
-| Directive     | Meaning                                                                                  | Suitability for K8s |
-|---------------|-------------------------------------------------------------------------------------------|----------------------|
-| `check`       | Enables health checks for backend servers                                                 | ✅ Required           |
-| `inter 10s`   | Send health checks every 10 seconds while server is UP                                    | ✅ Conservative       |
-| `downinter 5s`| Check every 5s when the server is DOWN (faster recovery)                                   | ✅ Good               |
-| `rise 2`      | Mark server UP after 2 consecutive successful checks                                       | ✅ Reasonable         |
-| `fall 2`      | Mark server DOWN after 2 consecutive failed checks                                         | ✅ Fast failover      |
-| `slowstart 60s` | When server comes back online, ramp up traffic gradually over 60 seconds                | ✅ Recommended for API servers or ingress endpoints that need warm-up time |
-| `maxconn 250` | Limit max concurrent connections to this server                                            | ⚠️️️️️ Fine if servers aren't under high pressure, but maybe raise for large clusters |
-| `maxqueue 256`| If `maxconn` is reached, queue up to 256 connections                                       | ✅ Good               |
-| `weight 100`  | Default load balancing weight                                                              | ✅ Standard           |
+| Directive     | Meaning                                                      | Suitability for K8s |
+|---------------|--------------------------------------------------------------|----------------------|
+| `check`       | Enables health checks for backend servers                    | ✅ Required           |
+| `inter 10s`   | Send health checks every 10 seconds while server is UP       | ✅ Conservative       |
+| `downinter 5s`| Check every 5s when the server is DOWN (faster recovery)     | ✅ Good               |
+| `rise 2`      | Mark server UP after 2 consecutive successful checks         | ✅ Reasonable         |
+| `fall 2`      | Mark server DOWN after 2 consecutive failed checks           | ✅ Fast failover      |
+| `slowstart 60s` | When a server recovers, ramp up traffic gradually over 60s | ✅ Recommended for API servers or ingress endpoints that need warm-up time |
+| `maxconn 250` | Limit max concurrent connections to this host                | ⚠️️️️️ Fine if servers aren't under high pressure, but maybe raise for large clusters |
+| `maxqueue 256`| If `maxconn` is reached, queue up to 256 connections         | ✅ Good               |
+| `weight 100`  | Default load balancing weight                                | ✅ Standard           |
 
 ---
 

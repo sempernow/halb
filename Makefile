@@ -39,6 +39,7 @@ export UTC      := $(shell date '+%Y-%m-%dT%H.%M.%Z')
 
 export HALB_DOMAIN       ?= lime.lan
 export HALB_FQDN         ?= kube.${HALB_DOMAIN}
+export HALB_HOSTS        ?= a1 a2 a3
 export HALB_FQDN_1       ?= a1.${HALB_DOMAIN}
 export HALB_FQDN_2       ?= a2.${HALB_DOMAIN}
 export HALB_FQDN_3       ?= a3.${HALB_DOMAIN}
@@ -55,6 +56,7 @@ export HALB_PORT_STATS   ?= 8404
 export HALB_PORT_K8S     ?= 8443
 export HALB_PORT_HTTP    ?= 30080
 export HALB_PORT_HTTPS   ?= 30443
+export HALB_LOG_SINCE    ?= 15 minute ago
 
 
 ##############################################################################
@@ -79,9 +81,11 @@ export ANSIBASH_USER         ?= ${ADMIN_USER}
 
 menu :
 	$(INFO) 'Install HA (Network) Load Balancer (HALB) onto all target hosts : RHEL9 is expected'
-	@echo "upgrade      : dnf upgrade"
+	@echo "upgrade      : OS upgrade : dnf upgrade"
 	@echo "selinux      : Set SELinux mode"
 	@echo "reboot       : Reboot hosts"
+	@echo "  -soft      : drain ➔  reboot ➔  uncordon : ${HALB_HOSTS}"
+	@echo "  -hard      : reboot ${HALB_HOSTS}"
 	@echo "rpms         : Install HAProxy/Keepalived"
 	@echo "============== "
 	@echo "Install      : Install HALB by recipes : firewall build push conf"
@@ -89,23 +93,25 @@ menu :
 	@echo "  build      : Generate HALB configurations from .tpl files"
 	@echo "  push       : Push the app-config files to target hosts"
 	@echo "  conf       : Configure HALB on target hosts"
-	@echo "update       : Update /etc/…/haproxy.cfg & /etc/…/keepalived.conf"
+	@echo "update       : Update HALB configuration"
 	@echo "show         : Show HALB processes"
 	@echo "log          : Selected recent app logs : journalctl -eu …"
-	@echo "test         : Test HALB failover"
 	@echo "stats        : GET http://<HOST>:${HALB_PORT_STATS}/stats/ | HAProxy web page"
 	@echo "healthz      : GET https://<HOST>:${HALB_PORT_K8S}/healthz | K8s API server"
+	@echo "test         : Test HALB failover"
 	@echo "============== "
 	@echo "teardown     : Teardown HAProxy and Keepalived; remove vIP from network device"
 	@echo "============== "
 	@echo "scan         : Nmap scan report"
 	@echo "status       : Print targets' status"
-	@echo "sealert      : sealert -l '*'"
+	@echo "sealert      : SELinux : sealert -l '*'"
+	@echo "ausearch     : SELinux : ausearch -c keepalived -m avc -ts recent"
 	@echo "net          : Interfaces' info"
 	@echo "ruleset      : nftables rulesets"
 	@echo "iptables     : iptables"
-	@echo "psrss        : Print targets' top memory usage : RSS [MiB]"
-	@echo "userrc       : Configure targets' bash shell using latest @ github.com/sempernow/userrc.git"
+	@echo "psrss        : Top RSS usage"
+	@echo "pscpu        : Top CPU usage"
+	@echo "userrc       : Install onto targets the latest shell scripts of github.com/sempernow/userrc.git"
 	@echo "============== "
 	@echo "env          : Print the make environment"
 	@echo "mode         : Fix folder and file modes of this project"
@@ -158,7 +164,9 @@ status :
 	    && printf "%12s: %s\n" kubelet $$(systemctl is-active kubelet) \
 	  '
 sealert :
-	ansibash 'sudo sealert -l "*" |grep -e == -e "Source Path" -e "Last Seen" |grep -v 2024 |grep -B1 -e == -e "Last Seen"'
+	ansibash 'sudo sealert -l "*" |grep -e == -e "Source Path" -e "Last" |tail -n 20'
+ausearch :
+	ansibash sudo ausearch -c keepalived -m avc -ts recent
 net:
 	ansibash '\
 	    sudo nmcli dev status; \
@@ -170,13 +178,18 @@ iptables:
 	ansibash sudo iptables -L -n -v
 
 psrss :
-	ansibash -s scripts/psrss.sh
+	ansibash -s psrss.sh
+pscpu :
+	ansibash -s pscpu.sh
 
 userrc :
 	ansibash 'git clone https://github.com/sempernow/userrc 2>/dev/null || echo ok'
 	ansibash 'pushd userrc && git pull && make sync-user && make user'
 
-reboot :
+reboot : reboot-soft
+reboot-soft :
+	bash make.recipes.sh rebootSoft ${HALB_HOSTS}
+reboot-hard :
 	ansibash sudo reboot
 
 upgrade :
@@ -187,7 +200,7 @@ selinux :
 	    |tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.selinux.${UTC}.log
 
 rpms :
-	ansibash sudo dnf -y install conntrack haproxy keepalived \
+	ansibash sudo dnf -y install conntrack haproxy keepalived psmisc \
 	    |tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.rpms.${UTC}.log
 
 install : firewall build push conf
@@ -197,15 +210,16 @@ firewall :
 build :
 	bash ${ADMIN_SRC_DIR}/build-halb.sh
 push :
-	scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_1}.conf ${ADMIN_USER}@${HALB_FQDN_1}:keepalived.conf \
-	    && scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_2}.conf ${ADMIN_USER}@${HALB_FQDN_2}:keepalived.conf \
-	    && scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_3}.conf ${ADMIN_USER}@${HALB_FQDN_3}:keepalived.conf \
+	    ansibash -u ${ADMIN_SRC_DIR}/configure-halb.sh \
 	    && ansibash -u ${ADMIN_SRC_DIR}/haproxy.cfg \
-	    && ansibash -u ${ADMIN_SRC_DIR}/configure-halb.sh \
-	    && ansibash -u ${ADMIN_SRC_DIR}/systemd/keepalived.10-options.conf \
 	    && ansibash -u ${ADMIN_SRC_DIR}/systemd/haproxy.10-limits.conf \
 	    && ansibash -u ${ADMIN_SRC_DIR}/systemd/haproxy.20-quiet.conf \
-	    && ansibash -u ${ADMIN_SRC_DIR}/haproxy-rsyslog.conf
+	    && ansibash -u ${ADMIN_SRC_DIR}/haproxy-rsyslog.conf \
+	    && ansibash -u ${ADMIN_SRC_DIR}/systemd/keepalived.10-options.conf \
+	    && ansibash -u ${ADMIN_SRC_DIR}/keepalived-rogue-cleanup.sh \
+	    && scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_1}.conf ${ADMIN_USER}@${HALB_FQDN_1}:keepalived.conf \
+	    && scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_2}.conf ${ADMIN_USER}@${HALB_FQDN_2}:keepalived.conf \
+	    && scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_3}.conf ${ADMIN_USER}@${HALB_FQDN_3}:keepalived.conf
 pre :
 	ansibash 'sudo haproxy -c -f haproxy.cfg && sudo keepalived -n -l -f keepalived.conf'
 conf :
@@ -216,10 +230,16 @@ update :
 	      |tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.update.${UTC}.log
 show :
 	ansibash ip -4 -brief addr show dev ${HALB_DEVICE}
-	ansibash 'sudo journalctl -eu keepalived |grep -e Entering -e @'
-log :
-	ansibash  "sudo journalctl -eu haproxy --no-pager |grep -e == -e DOWN |tail -n 20"
-	ansibash  "sudo journalctl -eu keepalived --no-pager |tail -n 20"
+	ansibash  'sudo journalctl -eu haproxy --no-pager |grep -e == -e DOWN |tail -n 20'
+	ansibash 'sudo journalctl -eu keepalived --no-pager |grep -e Entering -e @'
+log : log-haproxy log-keepalived
+log-haproxy :
+	ansibash  'sudo journalctl -eu haproxy --no-pager |tail -n 20'
+#ansibash  'sudo journalctl -eu haproxy --since="${HALB_LOG_SINCE}" --no-pager |grep -e == -e DOWN |tail -n 20'
+log-keepalived :
+	ansibash  'sudo journalctl -eu keepalived --no-pager |tail -n 20'
+#ansibash  'sudo journalctl -eu keepalived --since="${HALB_LOG_SINCE}" --no-pager |tail -n 20'
+
 test :
 	bash ${ADMIN_SRC_DIR}/test-failover.sh
 stats :

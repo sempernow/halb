@@ -61,13 +61,16 @@ etc_configs(){
 systemctl disable --now keepalived
 systemctl disable --now haproxy
 
-dir=/usr/lib/systemd/system/keepalived.service.d
+## Install keepalived cleanup script 
+install keepalived-rogue-cleanup.sh /usr/local/bin/
+
+dir=/etc/systemd/system/keepalived.service.d
 mkdir -p $dir
 cp keepalived.10-options.conf $dir/10-options.conf
 chmod 0644 $dir/10-options.conf
 chown -R root:root $dir
 
-dir=/usr/lib/systemd/system/haproxy.service.d
+dir=/etc/systemd/system/haproxy.service.d
 mkdir -p $dir
 cp haproxy.10-limits.conf $dir/10-limits.conf
 chmod 0644 $dir/10-limits.conf
