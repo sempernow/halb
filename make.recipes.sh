@@ -31,10 +31,10 @@ rebootSoft(){
     domain=${HALB_DOMAIN:-HALB_DOMAIN}
     flag_node_timeout=''
 
-    [[ $(kubectl config get-contexts --no-headers) ]] || {
+    [[ "$(type -t kubectl)" && "$(kubectl config get-contexts --no-headers)" ]] || {
         printf "%s\n   %s\n" \
             "❌ This method requires client (kubectl) communication with K8s API;" \
-            "however, kubectl is entirely unconfigured; has no kubeconfig."
+            "however, kubectl is either missing or entirely unconfigured."
             return 1
     }
 
