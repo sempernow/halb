@@ -89,7 +89,7 @@ menu :
 	@echo "rpms         : Install HAProxy/Keepalived"
 	@echo "============== "
 	@echo "Install      : Install HALB by recipes : firewall build push conf"
-	@echo "  firewall   : Configure firewalld of target hosts for HALB"
+	@echo "  fw-set     : Configure firewalld of target hosts for HALB"
 	@echo "  build      : Generate HALB configurations from .tpl files"
 	@echo "  push       : Push the app-config files to target hosts"
 	@echo "  conf       : Configure HALB on target hosts"
@@ -98,6 +98,7 @@ menu :
 	@echo "  -haproxy   : "
 	@echo "  -keepalived: "
 	@echo "  -recent    : journalctl … --since='${HALB_LOG_SINCE}'"
+	@echo "  -fw        : journalctl … --since='${HALB_LOG_SINCE}' |grep DROP"
 	@echo "stats        : GET http://<HOST>:${HALB_PORT_STATS}/stats/ | HAProxy web page"
 	@echo "healthz      : GET https://<HOST>:${HALB_PORT_K8S}/healthz | K8s API server"
 	@echo "test         : Test HALB failover"
@@ -111,6 +112,7 @@ menu :
 	@echo "net          : Interfaces' info"
 	@echo "ruleset      : nftables rulesets"
 	@echo "iptables     : iptables"
+	@echo "fw-get       : List fw rules"
 	@echo "psrss        : Top RSS usage"
 	@echo "pscpu        : Top CPU usage"
 	@echo "userrc       : Install onto targets the latest shell scripts of github.com/sempernow/userrc.git"
@@ -126,6 +128,7 @@ env :
 	@echo "PWD=${PRJ_ROOT}"
 	@env |grep ADMIN_
 	@env |grep ANSIBASH_
+	@env |grep HALB_
 
 eol :
 	find . -type f ! -path '*/.git/*' -exec dos2unix {} \+
@@ -206,10 +209,13 @@ rpms :
 	ansibash sudo dnf -y install conntrack haproxy keepalived psmisc \
 	    |tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.rpms.${UTC}.log
 
-install : firewall build push conf
-firewall :
+install : fw-set build push conf
+fw-set  :
 	ansibash -u firewalld-halb.sh
 	ansibash sudo bash firewalld-halb.sh ${HALB_PORT_K8S} ${HALB_PORT_STATS}
+fw-get :
+	ansibash -u firewall-get.sh
+	ansibash 'sudo bash firewall-get.sh || echo "⚠️  ERR : $$?"'
 build :
 	bash ${ADMIN_SRC_DIR}/build-halb.sh
 push :
@@ -240,6 +246,8 @@ log-keepalived :
 log-recent :
 	ansibash  'sudo journalctl -eu haproxy --since="${HALB_LOG_SINCE}" --no-pager'
 	ansibash  'sudo journalctl -eu keepalived --since="${HALB_LOG_SINCE}" --no-pager'
+log-fw fw-log fw-logs :
+	ansibash "sudo journalctl --since='${HALB_LOG_SINCE}' |grep DROP;echo All recent DROP logs from \'${HALB_LOG_SINCE}\' until $$(date -Is)"
 
 test :
 	bash ${ADMIN_SRC_DIR}/test-failover.sh
