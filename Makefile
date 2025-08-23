@@ -94,8 +94,10 @@ menu :
 	@echo "  push       : Push the app-config files to target hosts"
 	@echo "  conf       : Configure HALB on target hosts"
 	@echo "update       : Update HALB configuration"
-	@echo "show         : Show HALB processes"
-	@echo "log          : Selected recent app logs : journalctl -eu …"
+	@echo "log          : journalctl -eu …"
+	@echo "  -haproxy   : "
+	@echo "  -keepalived: "
+	@echo "  -recent    : journalctl … --since='${HALB_LOG_SINCE}'"
 	@echo "stats        : GET http://<HOST>:${HALB_PORT_STATS}/stats/ | HAProxy web page"
 	@echo "healthz      : GET https://<HOST>:${HALB_PORT_K8S}/healthz | K8s API server"
 	@echo "test         : Test HALB failover"
@@ -172,6 +174,7 @@ net:
 	    sudo nmcli dev status; \
 	    ip -brief addr; \
 	  '
+	ansibash ip -4 -brief addr show dev ${HALB_DEVICE}
 ruleset:
 	ansibash sudo nft list ruleset
 iptables:
@@ -228,17 +231,15 @@ conf :
 update :
 	  ansibash sudo bash configure-halb.sh update \
 	      |tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.update.${UTC}.log
-show :
-	ansibash ip -4 -brief addr show dev ${HALB_DEVICE}
-	ansibash  'sudo journalctl -eu haproxy --no-pager |grep -e == -e DOWN |tail -n 20'
-	ansibash 'sudo journalctl -eu keepalived --no-pager |grep -e Entering -e @'
-log : log-haproxy log-keepalived
+
+log logs : log-haproxy log-keepalived
 log-haproxy :
-	ansibash  'sudo journalctl -eu haproxy --no-pager |tail -n 20'
-#ansibash  'sudo journalctl -eu haproxy --since="${HALB_LOG_SINCE}" --no-pager |grep -e == -e DOWN |tail -n 20'
+	ansibash  'sudo journalctl -eu haproxy --no-pager |grep -e == -e DOWN |tail -n 20'
 log-keepalived :
-	ansibash  'sudo journalctl -eu keepalived --no-pager |tail -n 20'
-#ansibash  'sudo journalctl -eu keepalived --since="${HALB_LOG_SINCE}" --no-pager |tail -n 20'
+	ansibash 'sudo journalctl -eu keepalived --no-pager |grep -e Entering -e @ |tail -n 20'
+log-recent :
+	ansibash  'sudo journalctl -eu haproxy --since="${HALB_LOG_SINCE}" --no-pager'
+	ansibash  'sudo journalctl -eu keepalived --since="${HALB_LOG_SINCE}" --no-pager'
 
 test :
 	bash ${ADMIN_SRC_DIR}/test-failover.sh
