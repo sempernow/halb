@@ -1,7 +1,7 @@
 ##############################################################################
 ## Makefile.settings : Environment Variables for Makefile(s)
 #include Makefile.settings
-# … ⋮ ︙ • “” ‘’ – — ™ ® © ± ° ¹ ² ³ ¼ ½ ¾ ÷ × ₽ € ¥ £ ¢ ¤ ♻ ⚐ ⚑ ✪ ❤ \ufe0f
+# … ⋮ ︙ • ● – — ™ ® © ± ° ¹ ² ³ ¼ ½ ¾ ÷ × ₽ € ¥ £ ¢ ¤ ♻ ⚐ ⚑ ✪ ❤ \ufe0f
 # ☢ ☣ ☠ ¦ ¶ § † ‡ ß µ Ø ƒ Δ ☡ ☈ ☧ ☩ ✚ ☨ ☦ ☓ ♰ ♱ ✖  ☘  웃 𝐀𝐏𝐏 🡸 🡺 ➔
 # ℹ️ ⚠️ ✅ ⌛ 🚀 🚧 🛠️ 🔧 🔍 🧪 👈 ⚡ ❌ 💡 🔒 📊 📈 🧩 📦 🥇 ✨️ 🔚
 ##############################################################################
@@ -52,6 +52,7 @@ export HALB_VIP6         ?= fd00:11::100
 export HALB_CIDR         ?= ${HALB_VIP}/${HALB_MASK}
 export HALB_CIDR6        ?= ${HALB_VIP6}/${HALB_MASK6}
 export HALB_DEVICE       ?= eth0
+export HALB_ZONE         ?= k8s-external
 export HALB_PORT_STATS   ?= 8404
 export HALB_PORT_K8S     ?= 8443
 export HALB_PORT_HTTP    ?= 30080
@@ -89,21 +90,21 @@ menu :
 	@echo "rpms         : Install HAProxy/Keepalived"
 	@echo "============== "
 	@echo "Install      : Install HALB by recipes : firewall build push conf"
-	@echo "  fw-set     : Configure firewalld of target hosts for HALB"
+	@echo "  fw-set     : Configure firewalld (zone ${HALB_ZONE}) of target hosts for HALB"
 	@echo "  build      : Generate HALB configurations from .tpl files"
 	@echo "  push       : Push the app-config files to target hosts"
 	@echo "  conf       : Configure HALB on target hosts"
 	@echo "update       : Update HALB configuration"
-	@echo "log          : journalctl -eu …"
-	@echo "  -haproxy   : "
-	@echo "  -keepalived: "
-	@echo "  -recent    : journalctl … --since='${HALB_LOG_SINCE}'"
-	@echo "  -fw        : journalctl … --since='${HALB_LOG_SINCE}' |grep DROP"
-	@echo "stats        : GET http://<HOST>:${HALB_PORT_STATS}/stats/ | HAProxy web page"
-	@echo "healthz      : GET https://<HOST>:${HALB_PORT_K8S}/healthz | K8s API server"
+	@echo "log          : journalctl … (all nodes)"
+	@echo "  -fw        : Log of all dropped packets (DROP) on device ${HALB_DEVICE} … --since='${HALB_LOG_SINCE}'"
+	@echo "  -haproxy   : Log of 'DOWN' upstreams"
+	@echo "  -keepalived: Log of 'Entering' (MASTER/BACKUP) state changes"
+	@echo "  -recent    : Unfiltered logs of both haproxy and keepalived … --since='${HALB_LOG_SINCE}'"
+	@echo "stats        : GET http://<HOST>:${HALB_PORT_STATS}/stats/ : Response code from HAProxy web page"
+	@echo "healthz      : GET https://<HOST>:${HALB_PORT_K8S}/healthz : Response of a K8s API endpoint"
 	@echo "test         : Test HALB failover"
 	@echo "============== "
-	@echo "teardown     : Teardown HAProxy and Keepalived; remove vIP from network device"
+	@echo "teardown     : HALB teardown"
 	@echo "============== "
 	@echo "scan         : Nmap scan report"
 	@echo "status       : Print targets' status"

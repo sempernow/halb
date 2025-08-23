@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 ##################################################################
-# firewalld : Configure for HA Application Load Balancer (HALB)
+# firewalld : Configure active zone for HALB
 # - Idempotent
 #
 # ARGs: K8S_API_PORT  HALB_STATS_PORT  [ANY(to teardown)]
@@ -57,8 +57,6 @@ at="--permanent --zone=$zone"
 firewall-cmd $at --$do-rich-rule='rule family="ipv4" destination address="224.0.0.0/4" accept'
 
 ## VRRP : Protocol 112 (an L3 protocol)
-#firewall-cmd $at --$do-rich-rule='rule protocol value="vrrp" accept'
-#firewall-cmd $at --$do-rich-rule='rule family="ipv4" source address="'$vip'" protocol value="vrrp" accept'
 # Add DIRECT RULEs for non-UDP/TCP protocols 
 # iptables -I INPUT -p 112 -j ACCEPT
 # iptables -I OUTPUT -p 112 -j ACCEPT
@@ -66,11 +64,6 @@ firewall-cmd --permanent --direct \
     --$do-rule ipv4 filter INPUT 0 -p 112 -j ACCEPT
 firewall-cmd --permanent --direct \
     --$do-rule ipv4 filter OUTPUT 0 -p 112 -j ACCEPT
-
-## VIP : Allow/Limit traffic to/from VIP address by either IPv4 or IPv6 
-#at="--permanent --zone=$zone"
-#firewall-cmd $at --$do-rich-rule='rule family="ipv4" source address="'$vip'" accept'
-#firewall-cmd $at --$do-rich-rule='rule family="ipv6" source address="'$vip6'" accept'
 
 # Update firewalld.service sans restart 
 firewall-cmd --reload
