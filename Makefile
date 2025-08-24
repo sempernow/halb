@@ -35,8 +35,10 @@ export UTC      := $(shell date '+%Y-%m-%dT%H.%M.%Z')
 
 
 ##############################################################################
-## HAProxy/Keepalived : HA Network Load Balancer (HANLB)
+## HAProxy/Keepalived : HA Network Load Balancer (HALB)
+## (See project at github.com/sempernow/halb)
 
+export HALB_PROJECT      ?= github.com/sempernow/halb
 export HALB_DOMAIN       ?= lime.lan
 export HALB_FQDN         ?= kube.${HALB_DOMAIN}
 export HALB_HOSTS        ?= a1 a2 a3
