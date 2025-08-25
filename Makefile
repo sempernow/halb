@@ -1,7 +1,7 @@
 ##############################################################################
 ## Makefile.settings : Environment Variables for Makefile(s)
 #include Makefile.settings
-# … ⋮ ︙ • ● – — ™ ® © ± ° ¹ ² ³ ¼ ½ ¾ ÷ × ₽ € ¥ £ ¢ ¤ ♻ ⚐ ⚑ ✪ ❤ \ufe0f
+# … ⋮ ︙ • ● – — ™ ® © ± ° ¹ ² ³ ¼ ½ ¾ ÷ × ₽ € ¥ £ ¢ ¤ ♻ ⚐ ⚑ ✪ ❤  \ufe0f
 # ☢ ☣ ☠ ¦ ¶ § † ‡ ß µ Ø ƒ Δ ☡ ☈ ☧ ☩ ✚ ☨ ☦ ☓ ♰ ♱ ✖  ☘  웃 𝐀𝐏𝐏 🡸 🡺 ➔
 # ℹ️ ⚠️ ✅ ⌛ 🚀 🚧 🛠️ 🔧 🔍 🧪 👈 ⚡ ❌ 💡 🔒 📊 📈 🧩 📦 🥇 ✨️ 🔚
 ##############################################################################
@@ -18,11 +18,11 @@
 
 
 ##############################################################################
-## $(INFO) : Usage : `$(INFO) 'What ever'` prints a stylized "@ What ever".
+## $(INFO) : USAGE : `$(INFO) "Any !"` in recipe prints quoted str, stylized.
 SHELL   := /bin/bash
 YELLOW  := "\e[1;33m"
 RESTORE := "\e[0m"
-INFO    := @bash -c 'printf $(YELLOW);echo "@ $$1";printf $(RESTORE)' MESSAGE
+INFO    := @bash -c 'printf $(YELLOW);echo "$$1";printf $(RESTORE)' MESSAGE
 
 
 ##############################################################################
@@ -36,7 +36,6 @@ export UTC      := $(shell date '+%Y-%m-%dT%H.%M.%Z')
 
 ##############################################################################
 ## HAProxy/Keepalived : HA Network Load Balancer (HALB)
-## (See project at github.com/sempernow/halb)
 
 export HALB_PROJECT      ?= github.com/sempernow/halb
 export HALB_DOMAIN       ?= lime.lan
@@ -59,21 +58,23 @@ export HALB_PORT_STATS   ?= 8404
 export HALB_PORT_K8S     ?= 8443
 export HALB_PORT_HTTP    ?= 30080
 export HALB_PORT_HTTPS   ?= 30443
-export HALB_LOG_SINCE    ?= 15 minute ago
 
+export DOMAIN_CA_CERT := ${PRJ_ROOT}/domain-root-CA.crt
 
 ##############################################################################
-## ansibash
+## Admin
 
 ## Public-key string of ssh user must be in ~/.ssh/authorized_keys of ADMIN_USER at all targets.
 #export ADMIN_USER            ?= $(shell id -un)
 export ADMIN_USER            ?= u2
 export ADMIN_KEY             ?= ${HOME}/.ssh/vm_lime
 export ADMIN_HOST            ?= a0
-export ADMIN_TARGET_LIST     ?= a1 a2 a3
+export ADMIN_TARGET_LIST     ?= ${HALB_HOSTS}
 export ADMIN_SRC_DIR         ?= $(shell pwd)
 #export ADMIN_DST_DIR         ?= ${ADMIN_SRC_DIR}
 export ADMIN_DST_DIR         ?= /tmp/$(shell basename "${ADMIN_SRC_DIR}")
+
+export ADMIN_JOURNAL_SINCE   ?= 15 minute ago
 
 export ANSIBASH_TARGET_LIST  ?= ${ADMIN_TARGET_LIST}
 export ANSIBASH_USER         ?= ${ADMIN_USER}
@@ -83,32 +84,31 @@ export ANSIBASH_USER         ?= ${ADMIN_USER}
 ## Recipes : Meta
 
 menu :
-	$(INFO) 'Install HA (Network) Load Balancer (HALB) onto all target hosts : RHEL9 is expected'
+	$(INFO) '🧩  Install HA Load Balancer (HALB) onto target hosts'
+	@echo "    - Target hosts expected: RHEL 8+"
+	@echo "    - See https://${HALB_PROJECT}"
+	$(INFO) "🚧  1. Prepare targets for HALB"
 	@echo "upgrade      : OS upgrade : dnf upgrade"
 	@echo "selinux      : Set SELinux mode"
+	@echo "rpms         : Install HAProxy/Keepalived"
 	@echo "reboot       : Reboot hosts"
 	@echo "  -soft      : drain ➔  reboot ➔  uncordon : ${HALB_HOSTS}"
 	@echo "  -hard      : reboot ${HALB_HOSTS}"
-	@echo "rpms         : Install HAProxy/Keepalived"
-	@echo "============== "
+	$(INFO) "🚀  2. Provision targets with HALB"
 	@echo "Install      : Install HALB by recipes : firewall build push conf"
 	@echo "  fw-set     : Configure firewalld (zone ${HALB_ZONE}) of target hosts for HALB"
 	@echo "  build      : Generate HALB configurations from .tpl files"
 	@echo "  push       : Push the app-config files to target hosts"
 	@echo "  conf       : Configure HALB on target hosts"
 	@echo "update       : Update HALB configuration"
+	$(INFO) "🔍  Inspect"
 	@echo "log          : journalctl … (all nodes)"
-	@echo "  -fw        : Log of all dropped packets (DROP) on device ${HALB_DEVICE} … --since='${HALB_LOG_SINCE}'"
+	@echo "  -fw        : Log of all dropped packets (DROP) on device ${HALB_DEVICE} … --since='${ADMIN_JOURNAL_SINCE}'"
 	@echo "  -haproxy   : Log of 'DOWN' upstreams"
 	@echo "  -keepalived: Log of 'Entering' (MASTER/BACKUP) state changes"
-	@echo "  -recent    : Unfiltered logs of both haproxy and keepalived … --since='${HALB_LOG_SINCE}'"
+	@echo "  -recent    : Unfiltered logs of both haproxy and keepalived … --since='${ADMIN_JOURNAL_SINCE}'"
 	@echo "stats        : GET http://<HOST>:${HALB_PORT_STATS}/stats/ : Response code from HAProxy web page"
 	@echo "healthz      : GET https://<HOST>:${HALB_PORT_K8S}/healthz : Response of a K8s API endpoint"
-	@echo "test         : Test HALB failover"
-	@echo "============== "
-	@echo "teardown     : HALB teardown"
-	@echo "============== "
-	@echo "scan         : Nmap scan report"
 	@echo "status       : Print targets' status"
 	@echo "sealert      : SELinux : sealert -l '*'"
 	@echo "ausearch     : SELinux : ausearch -c keepalived -m avc -ts recent"
@@ -118,8 +118,14 @@ menu :
 	@echo "fw-get       : List fw rules"
 	@echo "psrss        : Top RSS usage"
 	@echo "pscpu        : Top CPU usage"
+	@echo "scan         : Nmap scan report"
+	$(INFO) "🧪  Test"
+	@echo "bench         : Load test : ab -c ... -n ... https://${HALB_VIP}:${HALB_PORT_K8S}/healthz?verbose"
+	@echo "failover     : Test HALB failover"
+	$(INFO) "⚠️  Teardown"
+	@echo "teardown     : HALB teardown"
+	$(INFO) "🛠️  Maintenance"
 	@echo "userrc       : Install onto targets the latest shell scripts of github.com/sempernow/userrc.git"
-	@echo "============== "
 	@echo "env          : Print the make environment"
 	@echo "mode         : Fix folder and file modes of this project"
 	@echo "eol          : Fix line endings : Convert all CRLF to LF"
@@ -129,9 +135,11 @@ menu :
 env :
 	$(INFO) 'Environment'
 	@echo "PWD=${PRJ_ROOT}"
-	@env |grep ADMIN_
-	@env |grep ANSIBASH_
-	@env |grep HALB_
+	@env |grep HALB_ |sort
+	@echo
+	@env |grep ADMIN_ |sort
+	@echo
+	@env |grep ANSIBASH_ |sort
 
 eol :
 	find . -type f ! -path '*/.git/*' -exec dos2unix {} \+
@@ -247,12 +255,14 @@ log-haproxy :
 log-keepalived :
 	ansibash 'sudo journalctl -eu keepalived --no-pager |grep -e Entering -e @ |tail -n 20'
 log-recent :
-	ansibash  'sudo journalctl -eu haproxy --since="${HALB_LOG_SINCE}" --no-pager'
-	ansibash  'sudo journalctl -eu keepalived --since="${HALB_LOG_SINCE}" --no-pager'
+	ansibash  'sudo journalctl -eu haproxy --since="${ADMIN_JOURNAL_SINCE}" --no-pager'
+	ansibash  'sudo journalctl -eu keepalived --since="${ADMIN_JOURNAL_SINCE}" --no-pager'
 log-fw fw-log fw-logs :
-	ansibash "sudo journalctl --since='${HALB_LOG_SINCE}' |grep DROP;echo All recent DROP logs from \'${HALB_LOG_SINCE}\' until $$(date -Is)"
+	ansibash "sudo journalctl --since='${ADMIN_JOURNAL_SINCE}' |grep DROP;echo All recent DROP logs from \'${ADMIN_JOURNAL_SINCE}\' until $$(date -Is)"
 
-test :
+bench :
+	ab -c 100 -n 10000 https://${HALB_VIP}:${HALB_PORT_K8S}/healthz?verbose
+failover :
 	bash ${ADMIN_SRC_DIR}/test-failover.sh
 stats :
 	curl -sIX GET http://${HALB_VIP}:${HALB_PORT_STATS}/stats/ |grep HTTP || echo ERR : $$?
