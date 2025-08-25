@@ -1,6 +1,7 @@
 #!/bin/bash
 ###############################################################
 # Kill rogue keepalived processes not under systemd control
+# that otherwise cause (re)start failure of systemd service.
 # - Install to : 
 #   /usr/local/bin/keepalive-rogue-cleanup.sh
 # - Called by keepalived systemd drop-in :

@@ -62,6 +62,7 @@ systemctl disable --now keepalived
 systemctl disable --now haproxy
 
 ## Install keepalived cleanup script 
+## - Called by /etc/systemd/system/keepalived.service.d/10-options.conf
 install keepalived-rogue-cleanup.sh /usr/local/bin/
 
 dir=/etc/systemd/system/keepalived.service.d
