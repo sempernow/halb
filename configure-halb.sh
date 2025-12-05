@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-#####################################################
-# Configure haproxy and keepalived systemd services
-#####################################################
+############################################################
+# Configure halb : haproxy and keepalived systemd services
+############################################################
 update=$1
 [[ "$(id -u)" -ne 0 ]] && {
     echo "⚠️️️  ERR : MUST run as root" >&2
@@ -29,29 +29,41 @@ verify(){
     done
 }
 etc_configs(){
-
-    # Update the confs only
+    ## (Re)Configure halb from PWD files uploaded earlier.
+    
+    ## @ keepalived.conf
 
     dir=/etc/keepalived
     cp keepalived.conf $dir/
     chmod 0644 $dir/keepalived.conf
     chown -R root:root $dir
 
+    ip4(){
+        ## Get the IPv4 address of the first-found public interface of this host
+        ip --color=never -4 -brief addr "$@" |
+            command grep -v -e lo -e docker |
+            command grep UP |
+            head -n1 |
+            awk '{print $3}' |
+            cut -d'/' -f1
+    }
+    sed -i "s/THIS_IP/$(ip4)/g" $dir/keepalived.conf
+    
+    ## @ haproxy.cfg
+
     dir=/etc/haproxy
     cp haproxy.cfg $dir/
     chmod 0644 $dir/haproxy.cfg
     chown -R root:root $dir
-
-    [[ $update ]] && {
-        systemctl daemon-reload
-        systemctl restart haproxy
-        systemctl restart keepalived
-
-        verify
-    }
 }
+
 [[ $update ]] && {
     etc_configs 
+    ## @ systemd
+    systemctl daemon-reload
+    systemctl restart haproxy
+    systemctl restart keepalived
+    verify
 
     exit $?
 }
@@ -60,6 +72,8 @@ etc_configs(){
 
 systemctl disable --now keepalived
 systemctl disable --now haproxy
+sleep 3 # Allow keepalived to delete vIP from network interface
+ip -4 -brief addr # See that it has
 
 ## Install keepalived cleanup script 
 ## - Called by /etc/systemd/system/keepalived.service.d/10-options.conf
@@ -94,6 +108,7 @@ cp haproxy-rsyslog.conf $target
 chmod 0644 $target
 chown root:root $target
 
+## Configure halb (haproxy.cfg, keepalived.conf)
 etc_configs 
 
 #cp etc.hosts /etc/hosts 

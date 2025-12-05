@@ -1,0 +1,13 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-01-svc
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 8080        # Service (Cluster) network
+    targetPort: 8080  # Pod network
+    nodePort: 30001   # Host netwok
+  selector:
+    app: app-01

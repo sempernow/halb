@@ -32,7 +32,7 @@ zone="$(firewall-cmd --get-active-zone |head -n1)"
     ## Create and configure the service
 
     firewall-cmd --get-services --zone=$zone |grep -q "\b$svc\b" ||
-        firewall-cmd --new-service=$svc
+        firewall-cmd --permanent --new-service=$svc
 
     at="--permanent --zone=$zone --service=$svc"
 
