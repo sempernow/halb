@@ -49,15 +49,17 @@ vrrp_instance VI_1 {
     virtual_ipaddress {
         SET_VIP/SET_MASK
     }
-    # ## Unicast instead of default Multicast
-    # unicast_src_ip THIS_IP
-    # unicast_peer {
-    #     UNICAST_PEER_1    
-    #     UNICAST_PEER_2    
-    #     UNICAST_PEER_3    
-    # }
+
+    ## Unicast instead of default Multicast
+    unicast_src_ip THIS_IP
+    unicast_peer {
+        UNICAST_PEER_1    
+        UNICAST_PEER_2    
+        UNICAST_PEER_3    
+    }
     
     track_script {
         check_haproxy
     }
 }
+
