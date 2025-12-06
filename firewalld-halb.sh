@@ -40,10 +40,13 @@ zone="$(firewall-cmd --get-active-zone |head -n1)"
     firewall-cmd $at --$do-port=80/tcp
     firewall-cmd $at --$do-port=443/tcp
     firewall-cmd $at --$do-port=6443/tcp
+    firewall-cmd $at --$do-port=30443/tcp
+    firewall-cmd $at --$do-port=30080/tcp
     firewall-cmd $at --$do-port=$k8s_port/tcp
     firewall-cmd $at --$do-port=$stats_port/tcp
 }
-firewall-cmd --permanent --zone=$zone --$do-service=$svc
+firewall-cmd --permanent --zone=$zone --$do-service=$svc ||
+    echo "ℹ️  Okay if error is AME_CONFLICT"
 
 at="--permanent --zone=$zone"
 

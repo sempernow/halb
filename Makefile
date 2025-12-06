@@ -178,16 +178,14 @@ status :
 	    && printf "%12s: %s\n" haproxy $$(systemctl is-active haproxy) \
 	    && printf "%12s: %s\n" keepalived $$(systemctl is-active keepalived) \
 	    && printf "%12s: %s\n" kubelet $$(systemctl is-active kubelet) \
+	    && printf "%12s: %s\n" uptime "$$(uptime)" \
 	  '
 sealert :
 	ansibash 'sudo sealert -l "*" |grep -e == -e "Source Path" -e "Last" |tail -n 20'
 ausearch :
 	ansibash sudo ausearch -c keepalived -m avc -ts recent
 net:
-	ansibash '\
-	    sudo nmcli dev status; \
-	    ip -brief addr; \
-	  '
+	ansibash 'sudo nmcli dev status'
 	ansibash ip -4 -brief addr show dev ${HALB_DEVICE}
 ruleset:
 	ansibash sudo nft list ruleset
@@ -261,7 +259,7 @@ log-fw fw-log fw-logs :
 	ansibash "sudo journalctl --since='${ADMIN_JOURNAL_SINCE}' |grep DROP;echo All recent DROP logs from \'${ADMIN_JOURNAL_SINCE}\' until $$(date -Is)"
 
 bench :
-	ab -c 100 -n 10000 https://${HALB_VIP}:${HALB_PORT_K8S}/healthz?verbose
+	type -t ab && ab -c 100 -n 10000 https://${HALB_VIP}:${HALB_PORT_K8S}/healthz?verbose || echo "🧩 Requires CLI utility: ab"
 failover :
 	bash ${ADMIN_SRC_DIR}/test-failover.sh
 stats :

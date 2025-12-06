@@ -120,9 +120,13 @@ etc_configs
 setsebool -P haproxy_connect_any 1
 systemctl daemon-reload
 systemctl daemon-reexec	
+sleep 3
 systemctl restart rsyslog.service
 systemctl restart systemd-journald
-systemctl enable --now keepalived
+sleep 3
 systemctl enable --now haproxy
+sleep 3
+systemctl enable --now keepalived
 
 verify
+
