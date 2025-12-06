@@ -46,7 +46,7 @@ zone="$(firewall-cmd --get-active-zone |head -n1)"
     firewall-cmd $at --$do-port=$stats_port/tcp
 }
 firewall-cmd --permanent --zone=$zone --$do-service=$svc ||
-    echo "ℹ️  Okay if error is AME_CONFLICT"
+    echo "ℹ️  Okay if error is NAME_CONFLICT"
 
 at="--permanent --zone=$zone"
 
@@ -59,6 +59,7 @@ at="--permanent --zone=$zone"
 firewall-cmd $at --$do-rich-rule='rule family="ipv4" destination address="224.0.0.0/4" accept'
 
 ## VRRP : Protocol 112 (an L3 protocol)
+sudo firewall-cmd $at --$do-protocol=112 # Else DROP matches before direct rule
 # Add DIRECT RULEs for non-UDP/TCP protocols 
 # iptables -I INPUT -p 112 -j ACCEPT
 # iptables -I OUTPUT -p 112 -j ACCEPT
@@ -71,7 +72,8 @@ firewall-cmd --permanent --direct \
 firewall-cmd --reload
 
 firewall-cmd --list-services --zone=$zone |grep -q "\b$svc\b" || {
-    echo "❌  ERR : $? : NO service '$svc' is listed in zone '$zone'" >&2
+    [[ $do == 'add' ]] &&
+        echo "❌  ERR : $? : NO service '$svc' is listed in zone '$zone'" >&2
 
     exit 99
 }
