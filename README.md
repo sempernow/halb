@@ -5,16 +5,21 @@ to handle failover on loss of any host or `haproxy` process.
 
 ## __vIP__ for VRRP @ AD DNS
 
-- Pick an available IP within the network's hosts-address range yet outside the DHCP range:
-    - `192.168.11.11` (__vIP__)
 - Add DHCP reservation 
     - Declare a *dummy MAC* for the vIP using prefix "`02`", which designates it as __locally administered__.
         - __`02:00:00:00:01:01`__
-- Add a DNS __`A`__ (Apex) __record__ that resolves to the vIP:
+- Pick an available IP within the network's hosts-address range yet outside the DHCP range:
+    - `192.168.11.11` (__vIP__)
+- Add *two* DNS apex (__`A`__) records, both resolving to the cluster's vIP:
+    - FQDN: __`kube.lime.lan`__ 
+        - Production cluster (presented to customers).
     - FQDN: __`k8s1.lime.lan`__
-- Add a DNS __`CNAME` record__ for the upstream  application that resolves to the Apex record's IP address.   
-      This will be the application host  that is announced and otherwise __presented to external clients__:
-    - FQDN: __`kube.lime.lan`__
+        - Internal usage only.
+
+This scheme provides stable DNS for all clusters;  
+prod (`kube`), dev (`k8s1`, `k8s2`, &hellip;), test &hellip;.  
+Prod cutover is acheived simply by changing the vIP of prod's apex record.
+
 
 ## `default-server` block:
 
