@@ -27,9 +27,9 @@ vrrp_script check_haproxy {
     # SELinux denies:
     #script "/usr/bin/systemctl is-active --quiet haproxy"
     #script "/usr/bin/pgrep haproxy"
-    interval 2  # Check every 2 seconds 
-    fall 2      # Mark the service as failed after 3 failures 
-    rise 2      # Mark the service as up after 2 successes 
+    interval 2  # Check every N seconds 
+    fall 2      # Mark the service as failed after N failures 
+    rise 2      # Mark the service as up after N successes 
     weight -20  # Reduce priority by amount declared (-N) if the script fails
 }
 
