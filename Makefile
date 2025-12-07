@@ -95,12 +95,12 @@ menu :
 	@echo "  -soft      : drain ➔  reboot ➔  uncordon : ${HALB_HOSTS}"
 	@echo "  -hard      : reboot ${HALB_HOSTS}"
 	$(INFO) "🚀  2. Provision targets with HALB"
-	@echo "Install      : Install HALB by recipes : firewall build push conf"
-	@echo "  fw-set     : Configure firewalld (zone ${HALB_ZONE}) of target hosts for HALB"
+	@echo "fw-set       : Configure firewalld (zone ${HALB_ZONE}) of target hosts for HALB"
+	@echo "install      : Install HALB"
 	@echo "  build      : Generate HALB configurations from .tpl files"
-	@echo "  push       : Push the app-config files to target hosts"
+	@echo "  push       : Push the HALB config files to target hosts"
 	@echo "  conf       : Configure HALB on target hosts"
-	@echo "update       : Update HALB configuration"
+	@echo "update       : Update HALB (haproxy.cfg, keepalived.conf)"
 	$(INFO) "🔍  Inspect"
 	@echo "log          : journalctl … (all nodes)"
 	@echo "  -fw        : Log of all dropped packets (DROP) on device ${HALB_DEVICE} … --since='${ADMIN_JOURNAL_SINCE}'"
@@ -113,6 +113,7 @@ menu :
 	@echo "sealert      : SELinux : sealert -l '*'"
 	@echo "ausearch     : SELinux : ausearch -c keepalived -m avc -ts recent"
 	@echo "net          : Interfaces' info"
+	@echo "vip          : Show which node has the vIP"
 	@echo "ruleset      : nftables rulesets"
 	@echo "iptables     : iptables"
 	@echo "fw-get       : List fw rules"
@@ -184,12 +185,13 @@ sealert :
 	ansibash 'sudo sealert -l "*" |grep -e == -e "Source Path" -e "Last" |tail -n 20'
 ausearch :
 	ansibash sudo ausearch -c keepalived -m avc -ts recent
-net:
+net :
 	ansibash 'sudo nmcli dev status'
+vip :
 	ansibash ip -4 -brief addr show dev ${HALB_DEVICE}
-ruleset:
+ruleset :
 	ansibash sudo nft list ruleset
-iptables:
+iptables :
 	ansibash sudo iptables -L -n -v
 
 psrss :
@@ -225,6 +227,8 @@ fw-set  :
 fw-get :
 	ansibash -u firewall-get.sh
 	ansibash 'sudo bash firewall-get.sh || echo "⚠️  ERR : $$?"'
+
+install : build push conf
 build :
 	bash ${ADMIN_SRC_DIR}/build-halb.sh
 push :
@@ -238,23 +242,29 @@ push :
 	    && scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_1}.conf ${ADMIN_USER}@${HALB_FQDN_1}:keepalived.conf \
 	    && scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_2}.conf ${ADMIN_USER}@${HALB_FQDN_2}:keepalived.conf \
 	    && scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_3}.conf ${ADMIN_USER}@${HALB_FQDN_3}:keepalived.conf
-pre :
-	ansibash 'sudo haproxy -c -f haproxy.cfg && sudo keepalived -n -l -f keepalived.conf'
 conf :
 	  ansibash sudo bash configure-halb.sh \
 	      |tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.conf.${UTC}.log
-update :
-	  ansibash sudo bash configure-halb.sh update \
-	      |tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.update.${UTC}.log
+update : build
+	ansibash -u ${ADMIN_SRC_DIR}/configure-halb.sh
+	ansibash -u ${ADMIN_SRC_DIR}/haproxy.cfg
+	scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_1}.conf ${ADMIN_USER}@${HALB_FQDN_1}:keepalived.conf
+	scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_2}.conf ${ADMIN_USER}@${HALB_FQDN_2}:keepalived.conf
+	scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_3}.conf ${ADMIN_USER}@${HALB_FQDN_3}:keepalived.conf
+	ansibash sudo bash configure-halb.sh update |tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.update.${UTC}.log
+pre :
+	ansibash 'sudo haproxy -c -f haproxy.cfg && sudo keepalived -n -l -f keepalived.conf'
 
 log logs : log-haproxy log-keepalived
 log-haproxy :
-	ansibash  'sudo journalctl -eu haproxy --no-pager |grep -e == -e DOWN |tail -n 20'
+	ansibash  'systemctl is-active haproxy;sudo journalctl -eu haproxy --no-pager |grep -e == -e DOWN |tail -n 20'
 log-keepalived :
-	ansibash 'sudo journalctl -eu keepalived --no-pager |grep -e Entering -e @ |tail -n 20'
+	ansibash 'systemctl is-active keepalived;sudo journalctl -eu keepalived --no-pager |grep -e Entering -e @ |tail -n 20'
 log-recent :
-	ansibash  'sudo journalctl -eu haproxy --since="${ADMIN_JOURNAL_SINCE}" --no-pager'
-	ansibash  'sudo journalctl -eu keepalived --since="${ADMIN_JOURNAL_SINCE}" --no-pager'
+	ansibash  'sudo journalctl -eu haproxy --since="${ADMIN_JOURNAL_SINCE}" --no-pager --full'
+	ansibash  'sudo journalctl -eu keepalived --since="${ADMIN_JOURNAL_SINCE}" --no-pager --full'
+log-selinux :
+	ansibash sudo ausearch -c keepalived -m avc -ts recent
 log-fw fw-log fw-logs :
 	ansibash "sudo journalctl --since='${ADMIN_JOURNAL_SINCE}' |grep DROP;echo All recent DROP logs from \'${ADMIN_JOURNAL_SINCE}\' until $$(date -Is)"
 
@@ -273,4 +283,4 @@ healthz :
 	curl -ks https://${HALB_FQDN}:${HALB_PORT_K8S}/healthz?verbose || echo ERR : $$?
 teardown :
 	ansibash -u teardown.sh
-	ansibash sudo bash teardown.sh '${HALB_VIP}' '${HALB_MASK}' '${HALB_DEVICE}'
+	ansibash sudo bash teardown.sh '${HALB_VIP}' '${HALB_MASK}' '${HALB_DEVICE}'"
