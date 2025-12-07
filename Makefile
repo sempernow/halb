@@ -171,7 +171,7 @@ scan :
 
 # Smoke test this setup
 status :
-	ansibash 'printf "%12s: %s\n" Host $$(hostname) \
+	@ansibash 'printf "%12s: %s\n" Host $$(hostname) \
 	    && printf "%12s: %s\n" User $$(id -un) \
 	    && printf "%12s: %s\n" Kernel $$(uname -r) \
 	    && printf "%12s: %s\n" firewalld $$(systemctl is-active firewalld.service) \
