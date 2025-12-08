@@ -10,21 +10,33 @@ global_defs {
     default_interface SET_DEVICE
     #vrrp_garp_interval 0
     #vrrp_gna_interval 0
-    #enable_script_security
     ## Enable vrrp_skip_check_adv_addr only if VRRP adverts 
     ## are rejected due to mismatched source IPs. (See kubesphere.io)
     #vrrp_skip_check_adv_addr 
+
+    ## Enable script security
+    #script_security
+    ## Optional: Specify the script user 
+    ## sudo useradd -r -s /sbin/nologin keepalived_script
+    #script_user keepalived_script
+    #enable_script_security
 }
 
 vrrp_script check_haproxy {
-    # user root # SELinux prevents
+    user root 
     # env { 
     #     VIP="SET_VIP"
     #     PORT="SET_PORT"
     # }
     ## Check if HAProxy is running 
-    script "/usr/sbin/pidof haproxy"
-    # SELinux denies:
+    script "/etc/keepalived/check_haproxy.sh"
+    ## Failing:
+    #script "chk haproxy" # Builtin; no SELinux issues
+    ## SELinux denies:
+    #script "/usr/bin/killall -0 haproxy"
+    #script "/bin/sh -c '/usr/bin/killall -0 haproxy'"
+    #script "/bin/sh -c 'pidof haproxy >/dev/null'"
+    #script "/usr/sbin/pidof haproxy"
     #script "/usr/bin/systemctl is-active --quiet haproxy"
     #script "/usr/bin/pgrep haproxy"
     interval 2  # Check every N seconds 

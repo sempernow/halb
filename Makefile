@@ -239,6 +239,7 @@ push :
 	    && ansibash -u ${ADMIN_SRC_DIR}/haproxy-rsyslog.conf \
 	    && ansibash -u ${ADMIN_SRC_DIR}/systemd/keepalived.10-options.conf \
 	    && ansibash -u ${ADMIN_SRC_DIR}/keepalived-rogue-cleanup.sh \
+	    && ansibash -u ${ADMIN_SRC_DIR}/keepalived-check-haproxy.sh \
 	    && scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_1}.conf ${ADMIN_USER}@${HALB_FQDN_1}:keepalived.conf \
 	    && scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_2}.conf ${ADMIN_USER}@${HALB_FQDN_2}:keepalived.conf \
 	    && scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_3}.conf ${ADMIN_USER}@${HALB_FQDN_3}:keepalived.conf
@@ -248,6 +249,7 @@ conf :
 update : build
 	ansibash -u ${ADMIN_SRC_DIR}/configure-halb.sh
 	ansibash -u ${ADMIN_SRC_DIR}/haproxy.cfg
+	ansibash -u ${ADMIN_SRC_DIR}/keepalived-check-haproxy.sh
 	scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_1}.conf ${ADMIN_USER}@${HALB_FQDN_1}:keepalived.conf
 	scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_2}.conf ${ADMIN_USER}@${HALB_FQDN_2}:keepalived.conf
 	scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_3}.conf ${ADMIN_USER}@${HALB_FQDN_3}:keepalived.conf

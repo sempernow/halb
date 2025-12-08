@@ -46,7 +46,13 @@ etc_configs(){
     dir=/etc/keepalived
     cp keepalived.conf $dir/
     chmod 0644 $dir/keepalived.conf
+
+    install keepalived-check-haproxy.sh $dir/check_haproxy.sh
+    semanage fcontext -a -t keepalived_tmp_t 'check_haproxy.sh'
+    restorecon -v 'check_haproxy.sh'
+
     chown -R root:root $dir
+
 
     ## If configured for unicast mode, then substitute and verify host's IPv4 address else fail
     grep -q unicast_peer $dir/keepalived.conf && {
