@@ -48,12 +48,14 @@ etc_configs(){
     chmod 0644 $dir/keepalived.conf
     chown -R root:root $dir
 
-    ## Substitute and verify host's IPv4 address replaced THIS_IP, else fail
-    ip="$(ip4)"
-    sed -i "s/THIS_IP/$ip/g" $dir/keepalived.conf
-    grep -q "$ip" $dir/keepalived.conf ||
-        return 44
-    
+    ## If configured for unicast mode, then substitute and verify host's IPv4 address else fail
+    grep -q unicast_peer $dir/keepalived.conf && {
+        ip="$(ip4)"
+        sed -i "s/THIS_IP/$ip/g" $dir/keepalived.conf
+        grep -q "$ip" $dir/keepalived.conf ||
+            return 44
+    }
+
     ## @ haproxy.cfg
 
     dir=/etc/haproxy
@@ -61,6 +63,9 @@ etc_configs(){
     chmod 0644 $dir/haproxy.cfg
     chown -R root:root $dir
 
+    ##########################################################
+    ## Attempts to fix SELinux denials on health check method
+    ##########################################################
     # # Restore default contexts
     # sudo restorecon -Rv /etc/keepalived
     # sudo restorecon -Rv /usr/sbin/keepalived
