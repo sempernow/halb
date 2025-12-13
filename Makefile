@@ -241,7 +241,7 @@ push :
 	    && scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_2}.conf ${ADMIN_USER}@${HALB_FQDN_2}:keepalived.conf \
 	    && scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_3}.conf ${ADMIN_USER}@${HALB_FQDN_3}:keepalived.conf
 conf :
-	  ansibash sudo bash configure-halb.sh \
+	  ansibash sudo bash configure-halb.sh installConfig \
 	      |tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.conf.${UTC}.log
 update : build
 	ansibash -u ${ADMIN_SRC_DIR}/configure-halb.sh
@@ -250,7 +250,7 @@ update : build
 	scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_1}.conf ${ADMIN_USER}@${HALB_FQDN_1}:keepalived.conf
 	scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_2}.conf ${ADMIN_USER}@${HALB_FQDN_2}:keepalived.conf
 	scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_3}.conf ${ADMIN_USER}@${HALB_FQDN_3}:keepalived.conf
-	ansibash sudo bash configure-halb.sh update |tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.update.${UTC}.log
+	ansibash sudo bash configure-halb.sh updateConfig |tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.update.${UTC}.log
 pre :
 	ansibash 'sudo haproxy -c -f haproxy.cfg && sudo keepalived -n -l -f keepalived.conf'
 
