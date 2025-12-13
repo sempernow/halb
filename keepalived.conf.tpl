@@ -29,14 +29,13 @@ vrrp_script check_haproxy {
     #     PORT="SET_PORT"
     # }
     ## Check if HAProxy is running 
-    ## Failing:
-    script "/usr/libexec/keepalived/check_haproxy.sh"
-    #script "chk haproxy" # Builtin; no SELinux issues
     ## SELinux denies:
+    #script "/usr/libexec/keepalived/check_haproxy.sh"
+    #script "chk haproxy" # Builtin; no SELinux issues
     #script "/usr/bin/killall -0 haproxy"
     #script "/bin/sh -c '/usr/bin/killall -0 haproxy'"
     #script "/bin/sh -c 'pidof haproxy >/dev/null'"
-    #script "/usr/sbin/pidof haproxy"
+    script "/usr/sbin/pidof haproxy"
     #script "/usr/bin/systemctl is-active --quiet haproxy"
     #script "/usr/bin/pgrep haproxy"
     interval 2  # Check every N seconds 
