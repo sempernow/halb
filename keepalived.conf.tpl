@@ -23,14 +23,14 @@ global_defs {
 }
 
 vrrp_script check_haproxy {
-    user root 
+    #user root 
     # env { 
     #     VIP="SET_VIP"
     #     PORT="SET_PORT"
     # }
     ## Check if HAProxy is running 
-    script "/etc/keepalived/check_haproxy.sh"
     ## Failing:
+    script "/usr/libexec/keepalived/check_haproxy.sh"
     #script "chk haproxy" # Builtin; no SELinux issues
     ## SELinux denies:
     #script "/usr/bin/killall -0 haproxy"

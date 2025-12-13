@@ -72,7 +72,7 @@ rebootSoft(){
         awaitNodeReady $node || export flag_node_timeout=$node
         
         ## Bypass the External Load Balancer to hit an endpoint at *this* node's instance of K8s API server.
-        request="https://$node.$domain:6443/healthz"
+        request="https://$node.$domain:6443/readyz"
         echo -e "⌛ K8s : Await expected response from API server on subject node : $request"
         while true; do
             curl -fksIX GET --connect-timeout 3 $request |grep -v 50 |grep HTTP &&

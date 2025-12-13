@@ -107,8 +107,7 @@ menu :
 	@echo "  -haproxy   : Log of 'DOWN' upstreams"
 	@echo "  -keepalived: Log of 'Entering' (MASTER/BACKUP) state changes"
 	@echo "  -recent    : Unfiltered logs of both haproxy and keepalived … --since='${ADMIN_JOURNAL_SINCE}'"
-	@echo "stats        : GET http://<HOST>:${HALB_PORT_STATS}/stats/ : Response code from HAProxy web page"
-	@echo "healthz      : GET https://<HOST>:${HALB_PORT_K8S}/healthz : Response of a K8s API endpoint"
+	@echo "health       : GET : HTTP responses"
 	@echo "status       : Print targets' status"
 	@echo "sealert      : SELinux : sealert -l '*'"
 	@echo "ausearch     : SELinux : ausearch -c keepalived -m avc -ts recent"
@@ -213,14 +212,13 @@ upgrade :
 	ansibash sudo dnf -y --color=never upgrade \
 	    |tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.upgrade.${UTC}.log
 selinux :
-	ansibash -s ${ADMIN_SRC_DIR}/configure-selinux.sh enforcing \
+	ansibash -s ${ADMIN_SRC_DIR}/configure-selinux.sh  \
 	    |tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.selinux.${UTC}.log
-
 rpms :
 	ansibash sudo dnf -y install conntrack haproxy keepalived psmisc \
 	    |tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.rpms.${UTC}.log
 
-install : fw-set build push conf
+install : fw-set rpms build push conf
 fw-set  :
 	ansibash -u firewalld-halb.sh
 	ansibash sudo bash firewalld-halb.sh ${HALB_PORT_K8S} ${HALB_PORT_STATS}
@@ -228,7 +226,6 @@ fw-get :
 	ansibash -u firewall-get.sh
 	ansibash 'sudo bash firewall-get.sh || echo "⚠️  ERR : $$?"'
 
-install : build push conf
 build :
 	bash ${ADMIN_SRC_DIR}/build-halb.sh
 push :
@@ -261,7 +258,8 @@ log logs : log-haproxy log-keepalived
 log-haproxy :
 	ansibash  'systemctl is-active haproxy;sudo journalctl -eu haproxy --no-pager |grep -e == -e DOWN |tail -n 20'
 log-keepalived :
-	ansibash 'systemctl is-active keepalived;sudo journalctl -eu keepalived --no-pager |grep -e Entering -e @ |tail -n 20'
+#ansibash 'systemctl is-active keepalived;sudo journalctl -eu keepalived --no-pager |grep -e Entering -e @ |tail -n 20'
+	ansibash 'systemctl is-active keepalived;sudo journalctl -eu keepalived --no-pager'
 log-recent :
 	ansibash  'sudo journalctl -eu haproxy --since="${ADMIN_JOURNAL_SINCE}" --no-pager --full'
 	ansibash  'sudo journalctl -eu keepalived --since="${ADMIN_JOURNAL_SINCE}" --no-pager --full'
@@ -280,9 +278,10 @@ stats :
 	curl -sIX GET http://${HALB_FQDN_1}:${HALB_PORT_STATS}/stats/ |grep HTTP || echo ERR : $$?
 	curl -sIX GET http://${HALB_FQDN_2}:${HALB_PORT_STATS}/stats/ |grep HTTP || echo ERR : $$?
 	curl -sIX GET http://${HALB_FQDN_3}:${HALB_PORT_STATS}/stats/ |grep HTTP || echo ERR : $$?
-healthz :
-	curl -ksfIX GET https://${HALB_VIP}:${HALB_PORT_K8S}/healthz/ |grep HTTP || echo ERR : $$?
-	curl -ks https://${HALB_FQDN}:${HALB_PORT_K8S}/healthz?verbose || echo ERR : $$?
+healthz health :
+	curl -sfIX GET http://${HALB_VIP}:${HALB_PORT_STATS}/stats |grep HTTP || echo ERR : $$?
+	curl -ksfIX GET https://${HALB_VIP}:${HALB_PORT_K8S}/readyz |grep HTTP || echo ERR : $$?
+	curl -ksfIX GET https://${HALB_FQDN}:${HALB_PORT_K8S}/readyz |grep HTTP || echo ERR : $$?
 teardown :
 	ansibash -u teardown.sh
-	ansibash sudo bash teardown.sh '${HALB_VIP}' '${HALB_MASK}' '${HALB_DEVICE}'"
+	ansibash 'sudo bash teardown.sh "${HALB_VIP}" "${HALB_MASK}" "${HALB_DEVICE}"'

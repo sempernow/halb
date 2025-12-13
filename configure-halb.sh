@@ -43,13 +43,32 @@ etc_configs(){
     
     ## @ keepalived.conf
 
+    dir=/usr/libexec/keepalived
+    install keepalived-check-haproxy.sh $dir/check_haproxy.sh
+    semanage fcontext -a -t keepalived_exec_t $dir/check_haproxy.sh
+    restorecon -v $dir/check_haproxy.sh
+
     dir=/etc/keepalived
     cp keepalived.conf $dir/
     chmod 0644 $dir/keepalived.conf
 
-    install keepalived-check-haproxy.sh $dir/check_haproxy.sh
-    semanage fcontext -a -t keepalived_tmp_t 'check_haproxy.sh'
-    restorecon -v 'check_haproxy.sh'
+    # Set proper context for keepalived files
+    #semanage fcontext -a -t keepalived_exec_t /usr/sbin/keepalived
+    #semanage fcontext -a -t keepalived_etc_t "/etc/keepalived(/.*)?"
+    # restorecon -Rv /etc/keepalived /usr/sbin/keepalived
+
+    # # Allow keepalived to bind to non-standard ports if needed
+    # setsebool -P keepalived_connect_any=1
+    # # Allow VRRP traffic (if using default VRRP)
+    # setsebool -P keepalived_use_nftables=1
+    # # or for iptables:
+    # setsebool -P keepalived_use_ipsec=0
+    # # Allow keepalived to run scripts (for notify/check scripts)
+    # setsebool -P keepalived_run_scripts=1
+    # # Allow network connectivity for checks
+    # setsebool -P keepalived_can_network_connect=1
+    # # Allow network binding for services
+    # setsebool -P keepalived_can_network_bind=1
 
     chown -R root:root $dir
 
