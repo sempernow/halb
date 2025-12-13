@@ -212,7 +212,7 @@ upgrade :
 	ansibash sudo dnf -y --color=never upgrade \
 	    |tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.upgrade.${UTC}.log
 selinux :
-	ansibash -s ${ADMIN_SRC_DIR}/configure-selinux.sh  \
+	ansibash -s ${ADMIN_SRC_DIR}/configure-selinux.sh enforcing \
 	    |tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.selinux.${UTC}.log
 rpms :
 	ansibash sudo dnf -y install conntrack haproxy keepalived psmisc \

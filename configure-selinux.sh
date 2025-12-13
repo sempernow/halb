@@ -25,12 +25,7 @@ export -f e
 export -f p
 
 was=$(getenforce)
-want=$1
-[[ $1 && $(echo $1 |grep -i $want) ]] && e || p
+echo $1 |grep -q -i enforc && e || p
 now=$(getenforce)
 
 echo "🔍  SELinux : $(getenforce)"
-
-[[ ${now} =~ $was ]] &&
-    echo '✅  NO CHANGE to SELinux config' ||
-        echo '🚧  REBOOT required for some SELinux CHANGEs to take effect.'
