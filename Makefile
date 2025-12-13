@@ -109,8 +109,8 @@ menu :
 	@echo "  -recent    : Unfiltered logs of both haproxy and keepalived … --since='${ADMIN_JOURNAL_SINCE}'"
 	@echo "health       : GET : HTTP responses"
 	@echo "status       : Print targets' status"
+	@echo "ausearch     : SELinux : ausearch -m AVC,... -ts recent"
 	@echo "sealert      : SELinux : sealert -l '*'"
-	@echo "ausearch     : SELinux : ausearch -c keepalived -m avc -ts recent"
 	@echo "net          : Interfaces' info"
 	@echo "vip          : Show which node has the vIP"
 	@echo "ruleset      : nftables rulesets"
@@ -145,7 +145,7 @@ eol :
 	find . -type f ! -path '*/.git/*' -exec dos2unix {} \+
 mode :
 	find . -type d ! -path './.git/*' -exec chmod 0755 "{}" \;
-	find . -type f ! -path './.git/*' -exec chmod 0644 "{}" \;
+	find . -type f ! -path './.git/*' -exec chmod 0640 "{}" \;
 #	find . -type f ! -path './.git/*' -iname '*.sh' -exec chmod 0755 "{}" \;
 tree :
 	tree -d |tee tree-d
@@ -180,10 +180,11 @@ status :
 	    && printf "%12s: %s\n" kubelet $$(systemctl is-active kubelet) \
 	    && printf "%12s: %s\n" uptime "$$(uptime)" \
 	  '
+ausearch :
+	ansibash sudo ausearch -m AVC,USER_AVC,SELINUX_ERR,USER_SELINUX_ERR -ts recent \
+	  |tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.ausearch.${UTC}.log
 sealert :
 	ansibash 'sudo sealert -l "*" |grep -e == -e "Source Path" -e "Last" |tail -n 20'
-ausearch :
-	ansibash sudo ausearch -c keepalived -m avc -ts recent
 net :
 	ansibash 'sudo nmcli dev status'
 vip :
@@ -241,7 +242,7 @@ push :
 	    && scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_2}.conf ${ADMIN_USER}@${HALB_FQDN_2}:keepalived.conf \
 	    && scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_3}.conf ${ADMIN_USER}@${HALB_FQDN_3}:keepalived.conf
 conf :
-	  ansibash sudo bash configure-halb.sh \
+	  ansibash sudo bash configure-halb.sh installConfig \
 	      |tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.conf.${UTC}.log
 update : build
 	ansibash -u ${ADMIN_SRC_DIR}/configure-halb.sh
@@ -250,7 +251,7 @@ update : build
 	scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_1}.conf ${ADMIN_USER}@${HALB_FQDN_1}:keepalived.conf
 	scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_2}.conf ${ADMIN_USER}@${HALB_FQDN_2}:keepalived.conf
 	scp -p ${ADMIN_SRC_DIR}/keepalived-${HALB_FQDN_3}.conf ${ADMIN_USER}@${HALB_FQDN_3}:keepalived.conf
-	ansibash sudo bash configure-halb.sh update |tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.update.${UTC}.log
+	ansibash sudo bash configure-halb.sh updateConfig |tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.update.${UTC}.log
 pre :
 	ansibash 'sudo haproxy -c -f haproxy.cfg && sudo keepalived -n -l -f keepalived.conf'
 
