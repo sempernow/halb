@@ -27,9 +27,38 @@
 # For more information, please refer to <http://unlicense.org/>
 # -----------------------------------------------------------------------
 
-export ANSIBASH_VERSION='0.4.8 build 2025-01-12'
+export ANSIBASH_VERSION='0.5.1 build 2025-08-25'
 
 (return 0 2>/dev/null) && isSourced=1 || isSourced=0
+
+_pw(){
+    trim(){ 
+        shopt -s extglob 
+        local x="${@##+([[:space:]])}"; x="${x%%+([[:space:]])}"; printf "%s" "$x"
+    }
+    export -f trim
+    printf "Password: "
+    unset ANSIBASH_PW PW
+    while IFS= read -rsn1 ch; do
+        # Enter: empty (delimiter), \n (Linux), or \r (macOS/WSL)
+        if [[ -z $ch || $ch == $'\n' || $ch == $'\r' ]]; then
+            printf '\n'
+            break
+        fi
+        # Backspace/Delete
+        if [[ $ch == $'\177' || $ch == $'\b' ]]; then
+            if ((${#PW})); then
+                PW=${PW%?}
+                printf '\b \b'
+            fi
+        else
+            PW+=$ch
+            printf '\U25cf'
+        fi
+    done
+    export ANSIBASH_PW="$(printf "%s" "$(trim "$PW")" |base64)"
+}
+export _pw
 
 _ansibash(){
 
@@ -91,8 +120,14 @@ _ansibash(){
         type -t base64 >/dev/null 2>&1 || { echo "  REQUIREs base64";return 0; }
         [[ $2 ]] && [[ "${2,,}" == 'clear' ]] && { unset ANSIBASH_PW;return 0; }
         [[ $2 ]] && [[ "${2,,}" != 'clear' ]] && { export ANSIBASH_PW="$(echo "$2" |base64)";return 0; }
-        read -p 'Enter sudo password: ' -s ANSIBASH_PW
-        [[ $ANSIBASH_PW ]] && export ANSIBASH_PW="$(echo "$ANSIBASH_PW" |base64)" || unset ANSIBASH_PW
+        #read -p 'Enter sudo password: ' -s ANSIBASH_PW
+        #[[ $ANSIBASH_PW ]] && export ANSIBASH_PW="$(echo "$ANSIBASH_PW" |base64)" || unset ANSIBASH_PW
+        _pw
+        [[ $ANSIBASH_PW ]] || {
+            echo "Password is UNSET"
+            unset ANSIBASH_PW
+        }
+
         return 0
     }
 
@@ -122,7 +157,7 @@ _ansibash(){
         }
         [[ $pw ]] || {
             [[ $mode == '-x' ]] && { ssh $conn "$@";continue; }
-            [[ $mode == '-c' ]] && { ssh $conn /bin/bash -c "$@" && continue || return $?; }
+            [[ $mode == '-c' ]] && { ssh $conn /bin/bash -c "'$@'" && continue || return $?; }
             [[ $mode == '-s' ]] && {
                 [[ -r $script ]] || return 2
                 cat $script |ssh -T $conn /bin/bash -s - "$@" && continue || return $?
@@ -143,4 +178,5 @@ _ansibash "$@"
 code=$?
 (( $code )) && echo  "ERROR: $code"
 (( isSourced )) || exit $code
+
 

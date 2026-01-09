@@ -64,7 +64,14 @@ rebootSoft(){
         }
 
         echo -e "\nℹ️ Host : Command reboot of node $node ..."
-        ssh -t $node 'sudo reboot;sleep 300'
+        ssh -t $node 'sudo reboot'
+
+        export request="https://$node.$domain:6443/readyz"
+        
+        echo -e "ℹ️ Host : Waiting for node $node to go down ..." 
+        while curl -fksIX GET --max-time 3 "$request" >/dev/null 2>&1; do
+            sleep 2
+        done
         echo -e "ℹ️ Host : ...node $node is rebooting." 
 
         ## If this K8s Node fails to recover (STATUS: Ready) after reboot (within declared timeout), 
@@ -72,12 +79,11 @@ rebootSoft(){
         awaitNodeReady $node || export flag_node_timeout=$node
         
         ## Bypass the External Load Balancer to hit an endpoint at *this* node's instance of K8s API server.
-        request="https://$node.$domain:6443/readyz"
         echo -e "⌛ K8s : Await expected response from API server on subject node : $request"
         while true; do
-            curl -fksIX GET --connect-timeout 3 $request |grep -v 50 |grep HTTP &&
+            curl -fksIX GET --max-time 3 "$request" |grep -v 50 |grep HTTP &&
                 break
-            sleep 5
+            sleep 2
         done
 
         echo -e "\nℹ️ K8s : Uncordon node $node ..."

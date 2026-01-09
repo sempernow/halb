@@ -3,3 +3,6 @@
 **/*.html
 **/*.tgz
 **/*.key
+etc.hosts
+keepalived-*.conf
+haproxy.cfg

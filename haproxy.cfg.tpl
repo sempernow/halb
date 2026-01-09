@@ -70,7 +70,7 @@ listen stats
 
 ## Frontend for K8s API Server
 frontend k8s_api_front
-    #bind                *:K8S_PORT interface LB_DEVICE
+    #bind                *:K8S_PORT interface HALB_DEVICE
     bind                *:K8S_PORT
     default_backend     k8s_api_back
 
@@ -85,9 +85,9 @@ backend k8s_api_back
     tcp-check   connect
     #balance     leastconn
     balance     roundrobin
-    server      LB_1_FQDN LB_1_IPV4:6443
-    server      LB_2_FQDN LB_2_IPV4:6443 
-    server      LB_3_FQDN LB_3_IPV4:6443 
+    server      UPSTREAM_FQDN_1 UPSTREAM_IP_1:6443
+    server      UPSTREAM_FQDN_2 UPSTREAM_IP_2:6443 
+    server      UPSTREAM_FQDN_3 UPSTREAM_IP_3:6443 
 
 ## Frontend for K8s Ingress by HTTP
 frontend k8s_ingress_http_front
@@ -108,9 +108,9 @@ backend k8s_ingress_http_back
     balance     roundrobin
     # @ send-proxy (mode: tcp or http) : Adds header: 
     # PROXY TCP4 <client-ip> <vip> <ephemeral-port> <frontend-port>
-    server      LB_1_FQDN LB_1_IPV4:HTTP_PORT send-proxy
-    server      LB_2_FQDN LB_2_IPV4:HTTP_PORT send-proxy
-    server      LB_3_FQDN LB_3_IPV4:HTTP_PORT send-proxy
+    server      UPSTREAM_FQDN_1 UPSTREAM_IP_1:HTTP_PORT send-proxy
+    server      UPSTREAM_FQDN_2 UPSTREAM_IP_2:HTTP_PORT send-proxy
+    server      UPSTREAM_FQDN_3 UPSTREAM_IP_3:HTTP_PORT send-proxy
 
 ## Frontend for K8s Ingress HTTPS
 frontend k8s_ingress_https_front
@@ -129,9 +129,9 @@ backend k8s_ingress_https_back
 
     #balance     leastconn
     balance     roundrobin
-    server      LB_1_FQDN LB_1_IPV4:HTTPS_PORT send-proxy
-    server      LB_2_FQDN LB_2_IPV4:HTTPS_PORT send-proxy
-    server      LB_3_FQDN LB_3_IPV4:HTTPS_PORT send-proxy
+    server      UPSTREAM_FQDN_1 UPSTREAM_IP_1:HTTPS_PORT send-proxy
+    server      UPSTREAM_FQDN_2 UPSTREAM_IP_2:HTTPS_PORT send-proxy
+    server      UPSTREAM_FQDN_3 UPSTREAM_IP_3:HTTPS_PORT send-proxy
 
 ## Frontend for other Ingress or Service.type: LoadBalancer HTTPS
 # frontend other_svc_front
@@ -146,6 +146,6 @@ backend k8s_ingress_https_back
 #     #balance     roundrobin
 #     ## Session stickyness : use at NodePorts, LoadBalancer Services, and Stateful Apps.    
 #     balance source   # 👈 Source IP based load balancing for session stickyness
-#     server      LB_1_FQDN LB_1_IPV4:HTTPS_PORT send-proxy
-#     server      LB_2_FQDN LB_2_IPV4:HTTPS_PORT send-proxy
-#     server      LB_3_FQDN LB_3_IPV4:HTTPS_PORT send-proxy
+#     server      UPSTREAM_FQDN_1 UPSTREAM_IP_1:HTTPS_PORT send-proxy
+#     server      UPSTREAM_FQDN_2 UPSTREAM_IP_2:HTTPS_PORT send-proxy
+#     server      UPSTREAM_FQDN_3 UPSTREAM_IP_3:HTTPS_PORT send-proxy

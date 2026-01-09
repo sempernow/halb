@@ -29,13 +29,13 @@ vrrp_script check_haproxy {
     #     PORT="SET_PORT"
     # }
     ## Check if HAProxy is running 
+    script "/usr/sbin/pidof haproxy"
     ## SELinux denies:
     #script "/usr/libexec/keepalived/check_haproxy.sh"
     #script "chk haproxy" # Builtin; no SELinux issues
     #script "/usr/bin/killall -0 haproxy"
     #script "/bin/sh -c '/usr/bin/killall -0 haproxy'"
     #script "/bin/sh -c 'pidof haproxy >/dev/null'"
-    script "/usr/sbin/pidof haproxy"
     #script "/usr/bin/systemctl is-active --quiet haproxy"
     #script "/usr/bin/pgrep haproxy"
     interval 2  # Check every N seconds 
@@ -65,9 +65,9 @@ vrrp_instance VI_1 {
     ## Unicast instead of default Multicast
     unicast_src_ip THIS_IP
     unicast_peer {
-        UNICAST_PEER_1    
-        UNICAST_PEER_2    
-        UNICAST_PEER_3    
+        UNICAST_PEER_1
+        UNICAST_PEER_2
+        UNICAST_PEER_3
     }
     
     track_script {

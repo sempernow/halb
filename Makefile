@@ -44,6 +44,9 @@ export HALB_HOSTS        ?= a1 a2 a3
 export HALB_FQDN_1       ?= a1.${HALB_DOMAIN}
 export HALB_FQDN_2       ?= a2.${HALB_DOMAIN}
 export HALB_FQDN_3       ?= a3.${HALB_DOMAIN}
+export HALB_UPSTREAM_1   ?= a1.${HALB_DOMAIN}
+export HALB_UPSTREAM_2   ?= a2.${HALB_DOMAIN}
+export HALB_UPSTREAM_3   ?= a3.${HALB_DOMAIN}
 export HALB_MASK         ?= 24
 export HALB_MASK6        ?= 64
 export HALB_DOMAIN_CIDR  ?= 192.168.11.0/${HALB_MASK}
@@ -279,10 +282,11 @@ stats :
 	curl -sIX GET http://${HALB_FQDN_1}:${HALB_PORT_STATS}/stats/ |grep HTTP || echo ERR : $$?
 	curl -sIX GET http://${HALB_FQDN_2}:${HALB_PORT_STATS}/stats/ |grep HTTP || echo ERR : $$?
 	curl -sIX GET http://${HALB_FQDN_3}:${HALB_PORT_STATS}/stats/ |grep HTTP || echo ERR : $$?
-healthz health :
-	curl -sfIX GET http://${HALB_VIP}:${HALB_PORT_STATS}/stats |grep HTTP || echo ERR : $$?
+healthz health : stats
 	curl -ksfIX GET https://${HALB_VIP}:${HALB_PORT_K8S}/readyz |grep HTTP || echo ERR : $$?
 	curl -ksfIX GET https://${HALB_FQDN}:${HALB_PORT_K8S}/readyz |grep HTTP || echo ERR : $$?
+
 teardown :
 	ansibash -u teardown.sh
 	ansibash 'sudo bash teardown.sh "${HALB_VIP}" "${HALB_MASK}" "${HALB_DEVICE}"'
+
