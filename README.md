@@ -1,7 +1,60 @@
-# HALB :  HA Network Load Balancer built of [HAProxy / Keepalived](https://chatgpt.com/share/6804fcc4-45e0-8009-aaac-ccf8e9ed74de) 
+# HALB :  **HA** Network **L**oad **B**alancer built of HAProxy / Keepalived
 
-Provision a 3-node, Layer 4 (TCP mode) load balancer that implements Virtual Router Redundancy Protocol (VRRP) 
-to handle failover on loss of any host or `haproxy` process.
+Provision a multi-node, L4 (TCP mode) __load balancer__
+that implements Virtual Router Redundancy Protocol (VRRP)
+to handle N-seconds failover on process or host failure,
+for use as an op-prem __edge__ device to a __Kubernetes__ cluster.
+
+## Features
+
+| Feature | Description |
+|---------|-------------|
+| HAProxy TCP mode (TLS passthrough) | Configured for all frontends; terminates nothing, preserving end-to-end encryption |
+| 3-node cluster with VRRP | Unicast peer communication for reliable failover in any network environment |
+| SELinux support | Comprehensive policy with `semanage`, `restorecon`, and automatic policy package generation |
+| Health checks | `tcp-check` enabled on all backends with configurable intervals |
+| Stats endpoint | HAProxy statistics page exposed on `:8404/stats` |
+| Firewall rules | Protocol 112 (VRRP), multicast, and all service ports pre-configured via firewalld |
+| systemd integration | Drop-ins for resource limits, quiet operation, and cleanup scripts |
+
+## PROXY Protocol Requirement
+
+HALB uses HAProxy's `send-proxy` directive on HTTP/HTTPS ingress backends (ports 80 and 443).
+This sends a [PROXY protocol](https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt) header
+to preserve the original client IP address through the load balancer.
+
+**The upstream ingress controller must be configured to accept PROXY protocol** on NodePorts 30080 and 30443,
+otherwise connections will fail with protocol errors.
+
+### Ingress NGINX Configuration
+
+Add the following to the ingress controller's ConfigMap:
+
+```yaml
+data:
+  use-proxy-protocol: "true"
+```
+
+Or via Helm values:
+
+```yaml
+controller:
+  config:
+    use-proxy-protocol: "true"
+```
+
+### Disabling PROXY Protocol
+
+If your ingress controller does not support PROXY protocol, remove `send-proxy` from the
+backend server lines in `haproxy.cfg.tpl`:
+
+```diff
+- server      UPSTREAM_FQDN_1 UPSTREAM_IP_1:30080 send-proxy
++ server      UPSTREAM_FQDN_1 UPSTREAM_IP_1:30080
+```
+
+Note: Without PROXY protocol, the ingress controller will see HALB's IP as the client source IP
+rather than the actual client.
 
 ## __vIP__ for VRRP @ AD DNS
 

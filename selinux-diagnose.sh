@@ -7,9 +7,9 @@ sudo semodule -e keepalived_custom
 
 echo -e "\n=== Check if module provides needed rules ==="
 # Get required permissions from current denials
-REQUIRED=$(sudo ausearch -c keepalived -m avc --raw | sudo audit2allow -R | grep allow)
+REQUIRED="$(sudo ausearch -c keepalived -m avc --raw | sudo audit2allow -R | grep allow)"
 echo "Required:"
 echo "$REQUIRED"
 
 echo -e "\n=== Module provides ==="
-sudo sesearch -A --allow -m keepalived_custom
+sudo sesearch -A --allow |grep keepalived

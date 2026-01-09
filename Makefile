@@ -91,12 +91,8 @@ menu :
 	@echo "    - Target hosts expected: RHEL 8+"
 	@echo "    - See https://${HALB_PROJECT}"
 	$(INFO) "🚧  1. Prepare targets for HALB"
-	@echo "upgrade      : OS upgrade : dnf upgrade"
-	@echo "selinux      : Set SELinux mode"
 	@echo "rpms         : Install HAProxy/Keepalived"
-	@echo "reboot       : Reboot hosts"
-	@echo "  -soft      : drain ➔  reboot ➔  uncordon : ${HALB_HOSTS}"
-	@echo "  -hard      : reboot ${HALB_HOSTS}"
+	@echo "reboot       : Hard reboot of ${HALB_HOSTS}"
 	$(INFO) "🚀  2. Provision targets with HALB"
 	@echo "fw-set       : Configure firewalld (zone ${HALB_ZONE}) of target hosts for HALB"
 	@echo "install      : Install HALB"
@@ -149,7 +145,6 @@ eol :
 mode :
 	find . -type d ! -path './.git/*' -exec chmod 0755 "{}" \;
 	find . -type f ! -path './.git/*' -exec chmod 0640 "{}" \;
-#	find . -type f ! -path './.git/*' -iname '*.sh' -exec chmod 0755 "{}" \;
 tree :
 	tree -d |tee tree-d
 html :
@@ -206,26 +201,18 @@ userrc :
 	ansibash 'git clone https://github.com/sempernow/userrc 2>/dev/null || echo ok'
 	ansibash 'pushd userrc && git pull && make sync-user && make user'
 
-reboot : reboot-soft
-reboot-soft :
-	bash make.recipes.sh rebootSoft ${HALB_HOSTS}
-reboot-hard :
+reboot : 
 	ansibash sudo reboot
 
-upgrade :
-	ansibash sudo dnf -y --color=never upgrade \
-	    |tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.upgrade.${UTC}.log
-selinux :
-	ansibash -s ${ADMIN_SRC_DIR}/configure-selinux.sh enforcing \
-	    |tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.selinux.${UTC}.log
 rpms :
 	ansibash sudo dnf -y install conntrack haproxy keepalived psmisc \
 	    |tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.rpms.${UTC}.log
 
 install : fw-set rpms build push conf
+
 fw-set  :
-	ansibash -u firewalld-halb.sh
-	ansibash sudo bash firewalld-halb.sh ${HALB_PORT_K8S} ${HALB_PORT_STATS}
+	ansibash -u firewall-halb.sh
+	ansibash sudo bash firewall-halb.sh ${HALB_PORT_K8S} ${HALB_PORT_STATS}
 fw-get :
 	ansibash -u firewall-get.sh
 	ansibash 'sudo bash firewall-get.sh || echo "⚠️  ERR : $$?"'

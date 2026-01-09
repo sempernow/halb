@@ -68,6 +68,22 @@ firewall-cmd --permanent --direct \
 firewall-cmd --permanent --direct \
     --$do-rule ipv4 filter OUTPUT 0 -p 112 -j ACCEPT
 
+vrrpLockdown(){
+    ## VRRP : Protocol 112 - Restrict to known peers only
+    # Accept VRRP from each peer IP : Must refactor ARGs for this script
+    peers="192.168.11.101,192.168.11.102,192.168.11.103" 
+    IFS=',' read -ra PEERS <<< "$peers"
+    for peer in "${PEERS[@]}"; do
+        firewall-cmd --permanent --direct \
+            --$do-rule ipv4 filter INPUT 0 -p 112 -s "$peer" -j ACCEPT
+        firewall-cmd --permanent --direct \
+            --$do-rule ipv4 filter OUTPUT 0 -p 112 -d "$peer" -j ACCEPT
+    done
+    # Drop VRRP from all other sources (lower priority rule)
+    firewall-cmd --permanent --direct \
+        --$do-rule ipv4 filter INPUT 1 -p 112 -j DROP
+}
+
 # Update firewalld.service sans restart 
 firewall-cmd --reload
 
