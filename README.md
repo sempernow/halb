@@ -3,7 +3,7 @@
 Provision a multi-node, L4 (TCP mode) __load balancer__
 that implements Virtual Router Redundancy Protocol (VRRP)
 to handle N-seconds failover on process or host failure,
-for use as an op-prem __edge__ device to a __Kubernetes__ cluster.
+for use as an __edge__ device to an op-prem __Kubernetes__ cluster.
 
 ## Features
 

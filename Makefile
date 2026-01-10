@@ -1,4 +1,4 @@
-##############################################################################
+#############################################################################
 ## Makefile.settings : Environment Variables for Makefile(s)
 #include Makefile.settings
 # … ⋮ ︙ • ● – — ™ ® © ± ° ¹ ² ³ ¼ ½ ¾ ÷ × ₽ € ¥ £ ¢ ¤ ♻ ⚐ ⚑ ✪ ❤  \ufe0f
@@ -101,17 +101,19 @@ menu :
 	@echo "  conf       : Configure HALB on target hosts"
 	@echo "update       : Update HALB (haproxy.cfg, keepalived.conf)"
 	$(INFO) "🔍  Inspect"
+	@echo "status       : Print targets' status"
 	@echo "log          : journalctl … (all nodes)"
 	@echo "  -fw        : Log of all dropped packets (DROP) on device ${HALB_DEVICE} … --since='${ADMIN_JOURNAL_SINCE}'"
 	@echo "  -haproxy   : Log of 'DOWN' upstreams"
 	@echo "  -keepalived: Log of 'Entering' (MASTER/BACKUP) state changes"
 	@echo "  -recent    : Unfiltered logs of both haproxy and keepalived … --since='${ADMIN_JOURNAL_SINCE}'"
-	@echo "health       : GET : HTTP responses"
-	@echo "status       : Print targets' status"
 	@echo "ausearch     : SELinux : ausearch -m AVC,... -ts recent"
 	@echo "sealert      : SELinux : sealert -l '*'"
+	@echo "connect      : Test L4 connectivity"
+	@echo "health       : GET : HTTP responses"
 	@echo "net          : Interfaces' info"
-	@echo "vip          : Show which node has the vIP"
+	@echo "master       : Keepalived MASTER host"
+	@echo "vip          : IPv4 addresses attached to public interface of each host"
 	@echo "ruleset      : nftables rulesets"
 	@echo "iptables     : iptables"
 	@echo "fw-get       : List fw rules"
@@ -185,7 +187,7 @@ sealert :
 	ansibash 'sudo sealert -l "*" |grep -e == -e "Source Path" -e "Last" |tail -n 20'
 net :
 	ansibash 'sudo nmcli dev status'
-vip :
+vip : master
 	ansibash ip -4 -brief addr show dev ${HALB_DEVICE}
 ruleset :
 	ansibash sudo nft list ruleset
@@ -261,8 +263,13 @@ log-fw fw-log fw-logs :
 
 bench :
 	type -t ab && ab -c 100 -n 10000 https://${HALB_VIP}:${HALB_PORT_K8S}/healthz?verbose || echo "🧩 Requires CLI utility: ab"
+
+master : 
+	@bash make.recipes.sh master
+connect connectivity :
+	@bash make.recipes.sh connectivity
 failover :
-	bash ${ADMIN_SRC_DIR}/test-failover.sh
+	@bash make.recipes.sh failover
 stats :
 	curl -sIX GET http://${HALB_VIP}:${HALB_PORT_STATS}/stats/ |grep HTTP || echo ERR : $$?
 	curl -sIX GET http://${HALB_FQDN}:${HALB_PORT_STATS}/stats/ |grep HTTP || echo ERR : $$?
