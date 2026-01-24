@@ -107,6 +107,7 @@ menu :
 	@echo "  -haproxy   : Log of 'DOWN' upstreams"
 	@echo "  -keepalived: Log of 'Entering' (MASTER/BACKUP) state changes"
 	@echo "  -recent    : Unfiltered logs of both haproxy and keepalived … --since='${ADMIN_JOURNAL_SINCE}'"
+	@echo "restart      : Restart the load balancer"
 	@echo "ausearch     : SELinux : ausearch -m AVC,... -ts recent"
 	@echo "sealert      : SELinux : sealert -l '*'"
 	@echo "connect      : Test L4 connectivity"
@@ -180,6 +181,9 @@ status :
 	    && printf "%12s: %s\n" kubelet $$(systemctl is-active kubelet) \
 	    && printf "%12s: %s\n" uptime "$$(uptime)" \
 	  '
+restart :
+	@ansibash sudo systemctl restart haproxy
+	@ansibash sudo systemctl restart keepalived 
 ausearch :
 	ansibash sudo ausearch -m AVC,USER_AVC,SELINUX_ERR,USER_SELINUX_ERR -ts recent \
 	  |tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.ausearch.${UTC}.log
