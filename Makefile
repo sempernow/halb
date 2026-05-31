@@ -107,6 +107,9 @@ menu :
 	@echo "  -haproxy   : Log of 'DOWN' upstreams"
 	@echo "  -keepalived: Log of 'Entering' (MASTER/BACKUP) state changes"
 	@echo "  -recent    : Unfiltered logs of both haproxy and keepalived … --since='${ADMIN_JOURNAL_SINCE}'"
+	@echo "systemctl    : systemctl status ..."
+	@echo "ps           : ps -aux ..."
+	@echo "kill         : sudo pkill -9 ..."
 	@echo "restart      : Restart the load balancer"
 	@echo "ausearch     : SELinux : ausearch -m AVC,... -ts recent"
 	@echo "sealert      : SELinux : sealert -l '*'"
@@ -181,9 +184,17 @@ status :
 	    && printf "%12s: %s\n" kubelet $$(systemctl is-active kubelet) \
 	    && printf "%12s: %s\n" uptime "$$(uptime)" \
 	  '
+systemctl :
+	@ansibash systemctl status haproxy --no-pager --full
+	@ansibash systemctl status keepalived --no-pager --full
 restart :
 	@ansibash sudo systemctl restart haproxy
 	@ansibash sudo systemctl restart keepalived 
+ps :
+	@ansibash 'ps -aux |grep -e haproxy -e keepalived'
+kill :
+	@ansibash sudo pkill -9 keepalived
+	@ansibash sudo pkill -9 haproxy 
 ausearch :
 	ansibash sudo ausearch -m AVC,USER_AVC,SELINUX_ERR,USER_SELINUX_ERR -ts recent \
 	  |tee ${ADMIN_SRC_DIR}/logs/${LOG_PRE}.ausearch.${UTC}.log
@@ -191,6 +202,7 @@ sealert :
 	ansibash 'sudo sealert -l "*" |grep -e == -e "Source Path" -e "Last" |tail -n 20'
 net :
 	ansibash 'sudo nmcli dev status'
+
 vip : master
 	ansibash ip -4 -brief addr show dev ${HALB_DEVICE}
 ruleset :
@@ -226,7 +238,7 @@ fw-get :
 build :
 	bash ${ADMIN_SRC_DIR}/build-halb.sh
 push :
-	    ansibash -u ${ADMIN_SRC_DIR}/configure-halb.sh \
+	ansibash -u ${ADMIN_SRC_DIR}/configure-halb.sh \
 	    && ansibash -u ${ADMIN_SRC_DIR}/haproxy.cfg \
 	    && ansibash -u ${ADMIN_SRC_DIR}/systemd/haproxy.10-limits.conf \
 	    && ansibash -u ${ADMIN_SRC_DIR}/systemd/haproxy.20-quiet.conf \
